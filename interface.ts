@@ -5,6 +5,7 @@ interface DentistItem {
   area_expertise: string;
   picture: string;
   __v: number;
+  StartingPrice: number;
   bookings: [];
   id: string;
 }

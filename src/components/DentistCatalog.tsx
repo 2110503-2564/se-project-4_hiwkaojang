@@ -22,6 +22,7 @@ export default async function DentistCatalog({ dentistsJson }: { dentistsJson: P
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">{dentistItem.name}</h2>
               <p className="text-gray-600 mb-4">{dentistItem.area_expertise}</p>
+              <p className="text-gray-600 mb-4">Starting price: {dentistItem.StartingPrice} ฿</p>
               <Link
                 href={`/dentist/${dentistItem.id}`}
                 className="inline-block bg-[#4AA3BA] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#3b8294] transition duration-300"
