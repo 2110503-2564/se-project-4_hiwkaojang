@@ -2,7 +2,7 @@ export default async function getUser(token: string) {
     await new Promise((resolve) => setTimeout(resolve, 300));
   
     const response = await fetch(
-      "https://dentist-booking-backend.vercel.app/api/v1/users",
+      "http://localhost:5000/api/v1/users",
       {
         method: "GET",
         headers: {

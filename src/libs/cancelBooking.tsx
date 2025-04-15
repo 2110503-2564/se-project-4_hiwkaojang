@@ -1,12 +1,9 @@
-export default async function updateUser(
-    token: string,
-    uid: string,
-    role: string
+export default async function cancelBooking(
+    bid: string,
+    token: string
   ) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  
     const response = await fetch(
-      `http://localhost:5000/api/v1/users/${uid}`,
+      `http://localhost:5000/api/v1/bookings/${bid}`,
       {
         method: "PUT",
         headers: {
@@ -14,13 +11,13 @@ export default async function updateUser(
           authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          role: role,
+          status: "cancelled"
         }),
       }
     );
   
     if (!response.ok) {
-      throw new Error("Cannot fetch User account");
+      throw new Error("Cannot create booking");
     }
   
     return await response.json();

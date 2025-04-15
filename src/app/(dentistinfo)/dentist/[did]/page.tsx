@@ -40,7 +40,7 @@ export default async function DentistDetailPage({ params }: { params: { did: str
               <span className="font-semibold text-gray-900">Years of experience:</span> {dentistDetail.data.year_experience} Years
             </p>
             <p className="text-gray-600">
-              <span className="font-semibold text-gray-900">price:</span> {dentistDetail.data.year_experience} Years
+              <span className="font-semibold text-gray-900">Starting price:</span> {dentistDetail.data.StartingPrice}
             </p>
             
             {/* Appointment Button */}
