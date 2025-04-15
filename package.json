@@ -18,6 +18,7 @@
     "@reduxjs/toolkit": "^2.2.8",
     "bcryptjs": "^3.0.2",
     "dayjs": "^1.11.13",
+    "lucide-react": "^0.488.0",
     "mongoose": "^7.6.3",
     "next": "14.2.5",
     "next-auth": "^4.24.8",

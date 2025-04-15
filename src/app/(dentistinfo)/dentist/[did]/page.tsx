@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import getDentist from '@/libs/getDentist';
 import Link from 'next/link';
+import Rating from '@/components/Rating';
 
 export default async function DentistDetailPage({ params }: { params: { did: string } }) {
   const dentistDetail = await getDentist(params.did);
@@ -18,36 +19,45 @@ export default async function DentistDetailPage({ params }: { params: { did: str
       </div>
 
       {/* Dentist Details */}
-      <div className="max-w-4xl mx-auto my-10 bg-white p-8 rounded-lg shadow-lg">
-        <div className="flex flex-col md:flex-row items-center gap-8">
+      <div className=" mx-auto my-auto bg-white ">
+        <div className="flex items-center gap-10 px-40 py-10 max-w-7xl mx-auto gap-40">
           {/* Image */}
           <Image
             src={dentistDetail.data.picture}
             alt="Dentist Image"
-            width={250}
-            height={250}
+            width={350}
+            height={350}
             className="rounded-lg shadow-md"
           />
 
           {/* Details */}
-          <div className="text-center md:text-left">
-            <h2 className="text-2xl font-bold text-gray-900">{dentistDetail.data.name}</h2>
+          <div className="text-center md:text-left space-y-10">
+            <h1 className="text-5xl font-bold text-gray-900">{dentistDetail.data.name}</h1>
             <p className="text-gray-600 mt-2">
               <span className="font-semibold text-gray-900">Area of expertise:</span> {dentistDetail.data.area_expertise}
             </p>
             <p className="text-gray-600">
               <span className="font-semibold text-gray-900">Years of experience:</span> {dentistDetail.data.year_experience} Years
             </p>
+            <p className="text-gray-600">
+              <span className="font-semibold text-gray-900">price:</span> {dentistDetail.data.year_experience} Years
+            </p>
             
             {/* Appointment Button */}
             <Link href={`/booking?did=${params.did}`}>
-              <button className="mt-5 rounded-md bg-sky-600 px-5 py-2 text-white text-lg font-medium hover:bg-indigo-600 shadow-md">
+              <button className="mt-20 rounded-3xl bg-sky-500 px-3 py-2 text-white text-lg font-medium hover:bg-indigo-600 shadow-md">
                 Make an Appointment
               </button>
             </Link>
           </div>
         </div>
-      </div>
+
+        {/* Reviews */}
+      <Rating />
+
+        
+      </div> 
+      
     </main>
   );
 }
