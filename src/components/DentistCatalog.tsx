@@ -1,21 +1,50 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default async function DentistCatalog({ dentistsJson }: { dentistsJson: Promise<DentistJson> }) {
-  try {
-    const dentistJsonReady = await dentistsJson;
+export default function DentistCatalog({ dentistsJson }: { dentistsJson: Promise<DentistJson> }) {
+  const [search, setSearch] = useState('');
+  const [dentists, setDentists] = useState<DentistItem[]>([]);
+  const [filteredDentists, setFilteredDentists] = useState<DentistItem[]>([]);
 
-    return (
+  useEffect(() => {
+    dentistsJson.then(data => {
+      setDentists(data.data);
+      setFilteredDentists(data.data);
+    });
+  }, [dentistsJson]);
+
+  useEffect(() => {
+    const filtered = dentists.filter(d =>
+      d.name.toLowerCase().includes(search.toLowerCase()) ||
+      d.area_expertise.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredDentists(filtered);
+  }, [search, dentists]);
+
+  return (
+    <>
+      <div className="flex justify-center my-6">
+        <input
+          type="text"
+          placeholder="Search dentists..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#4AA3BA]"
+        />
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {dentistJsonReady.data.map((dentistItem: DentistItem) => (
+        {filteredDentists.map((dentistItem: DentistItem) => (
           <div key={dentistItem.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Image container with fixed aspect ratio */}
-            <div className="relative w-full h-64"> {/* Changed from h-48 to h-64 for taller container */}
+            <div className="relative w-full h-64">
               <Image
                 src={dentistItem.picture}
                 alt={dentistItem.name}
-                fill // This makes the image fill the container
-                className="object-cover" // This ensures the image covers the area while maintaining aspect ratio
+                fill
+                className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
             </div>
@@ -33,9 +62,6 @@ export default async function DentistCatalog({ dentistsJson }: { dentistsJson: P
           </div>
         ))}
       </div>
-    );
-  } catch (error) {
-    console.error('Failed to load dentists:', error);
-    return <p className="text-center my-4 text-red-500">Failed to load dentists. Please try again later.</p>;
-  }
+    </>
+  );
 }
