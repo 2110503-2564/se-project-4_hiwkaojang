@@ -5,7 +5,7 @@ export default async function updateBooking(
     dentist: string
   ) {
     const response = await fetch(
-      `https://dentist-booking-backend.vercel.app/api/v1/bookings/${bid}`,
+      `http://localhost:5000/api/v1/bookings/${bid}`,
       {
         method: "PUT",
         headers: {

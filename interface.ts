@@ -23,6 +23,7 @@ interface BookingItem {
   dentist: DentistItem;
   createdAt: string;
   __v: number;
+  status: string;
 }
 
 interface BookingJson {

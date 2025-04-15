@@ -86,6 +86,9 @@ export default function TopMenu() {
           <Link href="/booking" className="text-black hover:text-gray-600 font-semibold text-lg">
             Bookings
           </Link>
+          <Link href="/bookingHistory" className="text-black hover:text-gray-600 font-semibold text-lg">
+            Booking History
+          </Link>
           <Link href="/dentist" className="text-black hover:text-gray-600 font-semibold text-lg">
             Dentists
           </Link>
