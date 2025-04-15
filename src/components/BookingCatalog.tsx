@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import deleteBooking from "@/libs/deleteBooking";
+import cancelBooking from "@/libs/cancelBooking";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
@@ -69,6 +70,14 @@ export default function BookingCatalog({
     }
   };
 
+  const handleCancle = async (bookingId: string) => {
+    try {
+      await cancelBooking(bookingId, session.user.token);
+    } catch (error) {
+      console.error("Failed to cancel booking:", error);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
       {bookingJsonReady.data.map((bookingItem: BookingItem) => (
@@ -121,9 +130,9 @@ export default function BookingCatalog({
               </Link>
               <button
                 className="bg-white text-[#4AA3BA] border border-[#4AA3BA] px-4 py-2 rounded-full font-medium hover:text-red-500 hover:border-red-500 transition duration-300 text-sm whitespace-nowrap"
-                onClick={() => handleDelete(bookingItem._id)}
+                onClick={() => handleCancle(bookingItem._id)}
               >
-                Delete appointment
+                Cancel appointment
               </button>
             </div>
           </div>
