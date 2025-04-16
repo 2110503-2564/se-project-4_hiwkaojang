@@ -4,10 +4,23 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function DentistCatalog({ dentistsJson }: { dentistsJson: Promise<DentistJson> }) {
-  const [search, setSearch] = useState('');
+interface DentistItem {
+  id: number;
+  name: string;
+  area_expertise: string;
+  StartingPrice: number; // เปลี่ยนเป็น number
+  picture: string;
+}
+
+interface DentistCatalogProps {
+  dentistsJson: Promise<{ data: DentistItem[] }>;
+}
+
+export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
+  const [search, setSearch] = useState<string>('');
   const [dentists, setDentists] = useState<DentistItem[]>([]);
   const [filteredDentists, setFilteredDentists] = useState<DentistItem[]>([]);
+  const [sortAscending, setSortAscending] = useState<boolean>(true);
 
   useEffect(() => {
     dentistsJson.then(data => {
@@ -24,16 +37,33 @@ export default function DentistCatalog({ dentistsJson }: { dentistsJson: Promise
     setFilteredDentists(filtered);
   }, [search, dentists]);
 
+  const handleSort = () => {
+    const sorted = [...filteredDentists].sort((a, b) => {
+      return sortAscending ? a.StartingPrice - b.StartingPrice : b.StartingPrice - a.StartingPrice;
+    });
+    setFilteredDentists(sorted);
+    setSortAscending(!sortAscending);
+  };
+
   return (
     <>
-      <div className="flex justify-center my-6">
-        <input
-          type="text"
-          placeholder="Search dentists..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#4AA3BA]"
-        />
+      <div className="flex justify-center items-center my-6">
+        <div className="relative w-full max-w-md">
+          <input
+            type="text"
+            placeholder="Search dentists..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#4AA3BA] pl-10"
+          />
+          <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <button
+          onClick={handleSort}
+          className="flex items-center px-4 py-2 bg-[#4AA3BA] text-white rounded-lg hover:bg-[#3b8294] transition duration-300"
+        >
+          Sort
+        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
