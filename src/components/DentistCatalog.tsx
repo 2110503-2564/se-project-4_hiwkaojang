@@ -19,9 +19,9 @@ interface DentistCatalogProps {
 export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
   const [search, setSearch] = useState<string>('');
   const [areaFilter, setAreaFilter] = useState<string>('All');
+  const [sortOption, setSortOption] = useState<string>('none');
   const [dentists, setDentists] = useState<DentistItem[]>([]);
   const [filteredDentists, setFilteredDentists] = useState<DentistItem[]>([]);
-  const [sortAscending, setSortAscending] = useState<boolean>(true);
   const [areaOptions, setAreaOptions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -29,7 +29,6 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       setDentists(data.data);
       setFilteredDentists(data.data);
 
-      // Get unique area_expertise values for dropdown
       const uniqueAreas = Array.from(new Set(data.data.map(d => d.area_expertise)));
       setAreaOptions(['All', ...uniqueAreas]);
     });
@@ -46,16 +45,15 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       );
     }
 
-    setFilteredDentists(filtered);
-  }, [search, areaFilter, dentists]);
+    // Apply sorting
+    if (sortOption === 'asc') {
+      filtered = filtered.sort((a, b) => a.StartingPrice - b.StartingPrice);
+    } else if (sortOption === 'desc') {
+      filtered = filtered.sort((a, b) => b.StartingPrice - a.StartingPrice);
+    }
 
-  const handleSort = () => {
-    const sorted = [...filteredDentists].sort((a, b) =>
-      sortAscending ? a.StartingPrice - b.StartingPrice : b.StartingPrice - a.StartingPrice
-    );
-    setFilteredDentists(sorted);
-    setSortAscending(!sortAscending);
-  };
+    setFilteredDentists(filtered);
+  }, [search, areaFilter, sortOption, dentists]);
 
   return (
     <>
@@ -72,7 +70,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
           <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </div>
 
-        {/* Area Expertise Dropdown */}
+        {/* Area Filter */}
         <select
           value={areaFilter}
           onChange={(e) => setAreaFilter(e.target.value)}
@@ -85,13 +83,16 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
           ))}
         </select>
 
-        {/* Sort Button */}
-        <button
-          onClick={handleSort}
-          className="flex items-center px-4 py-2 bg-[#4AA3BA] text-white rounded-lg hover:bg-[#3b8294] transition duration-300"
+        {/* Sort by Price Dropdown */}
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4AA3BA]"
         >
-          Sort
-        </button>
+          <option value="none">Sort by Price</option>
+          <option value="asc">Price: Low to High</option>
+          <option value="desc">Price: High to Low</option>
+        </select>
       </div>
 
       {/* Dentist Cards */}
