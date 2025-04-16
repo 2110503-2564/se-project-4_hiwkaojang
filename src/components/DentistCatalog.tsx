@@ -8,7 +8,7 @@ interface DentistItem {
   id: number;
   name: string;
   area_expertise: string;
-  StartingPrice: number; // เปลี่ยนเป็น number
+  StartingPrice: number;
   picture: string;
 }
 
@@ -18,36 +18,49 @@ interface DentistCatalogProps {
 
 export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
   const [search, setSearch] = useState<string>('');
+  const [areaFilter, setAreaFilter] = useState<string>('All');
   const [dentists, setDentists] = useState<DentistItem[]>([]);
   const [filteredDentists, setFilteredDentists] = useState<DentistItem[]>([]);
   const [sortAscending, setSortAscending] = useState<boolean>(true);
+  const [areaOptions, setAreaOptions] = useState<string[]>([]);
 
   useEffect(() => {
     dentistsJson.then(data => {
       setDentists(data.data);
       setFilteredDentists(data.data);
+
+      // Get unique area_expertise values for dropdown
+      const uniqueAreas = Array.from(new Set(data.data.map(d => d.area_expertise)));
+      setAreaOptions(['All', ...uniqueAreas]);
     });
   }, [dentistsJson]);
 
   useEffect(() => {
-    const filtered = dentists.filter(d =>
-      d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.area_expertise.toLowerCase().includes(search.toLowerCase())
+    let filtered = dentists.filter(d =>
+      d.name.toLowerCase().includes(search.toLowerCase())
     );
+
+    if (areaFilter !== 'All') {
+      filtered = filtered.filter(d =>
+        d.area_expertise.toLowerCase() === areaFilter.toLowerCase()
+      );
+    }
+
     setFilteredDentists(filtered);
-  }, [search, dentists]);
+  }, [search, areaFilter, dentists]);
 
   const handleSort = () => {
-    const sorted = [...filteredDentists].sort((a, b) => {
-      return sortAscending ? a.StartingPrice - b.StartingPrice : b.StartingPrice - a.StartingPrice;
-    });
+    const sorted = [...filteredDentists].sort((a, b) =>
+      sortAscending ? a.StartingPrice - b.StartingPrice : b.StartingPrice - a.StartingPrice
+    );
     setFilteredDentists(sorted);
     setSortAscending(!sortAscending);
   };
 
   return (
     <>
-      <div className="flex justify-center items-center my-6">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-4 my-6">
+        {/* Search Bar */}
         <div className="relative w-full max-w-md">
           <input
             type="text"
@@ -58,6 +71,21 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
           />
           <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </div>
+
+        {/* Area Expertise Dropdown */}
+        <select
+          value={areaFilter}
+          onChange={(e) => setAreaFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4AA3BA]"
+        >
+          {areaOptions.map((area, index) => (
+            <option key={index} value={area}>
+              {area}
+            </option>
+          ))}
+        </select>
+
+        {/* Sort Button */}
         <button
           onClick={handleSort}
           className="flex items-center px-4 py-2 bg-[#4AA3BA] text-white rounded-lg hover:bg-[#3b8294] transition duration-300"
@@ -66,6 +94,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
         </button>
       </div>
 
+      {/* Dentist Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredDentists.map((dentistItem: DentistItem) => (
           <div key={dentistItem.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
