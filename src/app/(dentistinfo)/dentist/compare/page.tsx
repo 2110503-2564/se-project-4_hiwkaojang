@@ -86,13 +86,14 @@ export default function CompareDentistPage() {
                 idx === 0 ? "md:border-r-2 md:border-gray-500" : ""
               }`}
             >
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden relative">
               <Image
                 src={dentist.picture}
                 alt={dentist.name}
                 width={250}
                 height={250}
-                className="rounded-lg shadow-md object-cover"
-              />
+                className="w-md h-64 rounded-lg shadow-md object-cover"
+              /></div>
               <h2 className="text-2xl font-bold text-center text-gray-800 mt-4">
                 {dentist.name}
               </h2>
