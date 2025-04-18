@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect , useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -27,6 +27,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
   const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const router = useRouter();
+  const bottomRef = useRef<HTMLDivElement>(null); // สร้าง ref ที่นี่
 
   useEffect(() => {
     dentistsJson.then(data => {
@@ -77,6 +78,12 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       router.push(`/dentist/compare?ids=${queryString}`);
     }
   };
+
+  useEffect(() => {
+    if (isCompareMode && selectedIds.length === 2 && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [isCompareMode, selectedIds]);
 
   return (
     <>
@@ -184,6 +191,12 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
           </button>
         </div>
       )}
+      {/* ส่วนอื่นๆ ของ Component */}
+      <br/>
+      <div className="text-center" ref={bottomRef}>
+        This is this Bottom
+        <p className={`${(isCompareMode && selectedIds.length===2)?  'block' : 'hidden' } text-green-500 text-center`}>Can Select only 2 Dent<br/>Pless click Compare Selected Dentists for Compare</p>
+      </div>
     </>
   );
 }
