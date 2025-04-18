@@ -50,8 +50,13 @@ export default function CompareDentistPage() {
   if (dentists.length < 2)
     return <div className="text-center mt-10">Loading comparison...</div>;
 
+  const [dentist1, dentist2] = dentists;
+
+  const priceBetter = dentist1.StartingPrice < dentist2.StartingPrice ? [true, false] : [false, true];
+  const experienceBetter = dentist1.year_experience > dentist2.year_experience ? [true, false] : [false, true];
+
   return (
-    <main className="min-h-screen bg-gray-50 py-10">
+    <main className="min-h-screen bg-gray-50">
       <div className="min-h-screen bg-gray-50">
         <TopMenu />
 
@@ -78,21 +83,30 @@ export default function CompareDentistPage() {
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-center items-stretch gap-0 max-w-6xl mx-auto border rounded-xl shadow-md bg-white overflow-hidden">
+        <div className="text-center mb-5">
+          <Link href="/dentist">
+            <button className="bg-[#4AA3BA] hover:bg-[#3b8294] text-white font-semibold py-2 px-6 rounded-full shadow-sm transition">
+              ← Back to Dentist Page
+            </button>
+          </Link>
+        </div>
+
+        <div className="flex flex-col md:flex-row justify-center items-stretch gap-0 max-w-6xl mx-auto border rounded-xl shadow-md bg-white overflow-hidden mb-16">
           {dentists.map((dentist, idx) => (
             <div
               key={idx}
               className={`flex-1 p-6 flex flex-col items-center ${
-                idx === 0 ? "md:border-r-2 md:border-gray-500" : ""
+                idx === 0 ? "md:border-r-2 md:border-gray-400" : ""
               }`}
             >
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden relative">
               <Image
                 src={dentist.picture}
                 alt={dentist.name}
                 width={250}
                 height={250}
-                className="rounded-lg shadow-md object-cover"
-              />
+                className="w-md h-64 rounded-lg shadow-md object-cover"
+              /></div>
               <h2 className="text-2xl font-bold text-center text-gray-800 mt-4">
                 {dentist.name}
               </h2>
@@ -100,11 +114,23 @@ export default function CompareDentistPage() {
                 <p>
                   <strong>Area of Expertise:</strong> {dentist.area_expertise}
                 </p>
-                <p>
+                <p
+                  className={
+                    experienceBetter[idx]
+                      ? "text-green-600 font-semibold"
+                      : "text-red-500"
+                  }
+                >
                   <strong>Years of Experience:</strong>{" "}
                   {dentist.year_experience} Years
                 </p>
-                <p>
+                <p
+                  className={
+                    priceBetter[idx]
+                      ? "text-green-600 font-semibold"
+                      : "text-red-500"
+                  }
+                >
                   <strong>Starting Price:</strong> {dentist.StartingPrice} ฿
                 </p>
               </div>
