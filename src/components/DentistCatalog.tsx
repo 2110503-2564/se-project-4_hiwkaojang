@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface DentistItem {
   id: number;
@@ -23,7 +24,9 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
   const [dentists, setDentists] = useState<DentistItem[]>([]);
   const [filteredDentists, setFilteredDentists] = useState<DentistItem[]>([]);
   const [areaOptions, setAreaOptions] = useState<string[]>([]);
-  const [isCompareMode, setStatusCompareMode] = useState<boolean>(false);
+  const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     dentistsJson.then(data => {
@@ -46,7 +49,6 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       );
     }
 
-    // Apply sorting
     if (sortOption === 'asc') {
       filtered = filtered.sort((a, b) => a.StartingPrice - b.StartingPrice);
     } else if (sortOption === 'desc') {
@@ -56,21 +58,38 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
     setFilteredDentists(filtered);
   }, [search, areaFilter, sortOption, dentists]);
 
-  const handleCompare = () => {
-    setStatusCompareMode(!isCompareMode);
-  }
+  const handleCompareToggle = () => {
+    setIsCompareMode(!isCompareMode);
+    setSelectedIds([]); // reset selection when toggling
+  };
+
+  const handleCheckboxChange = (id: number) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(selected => selected !== id));
+    } else if (selectedIds.length < 2) {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const goToComparePage = () => {
+    if (selectedIds.length === 2) {
+      const queryString = selectedIds.join(',');
+      router.push(`/dentist/compare?ids=${queryString}`);
+    }
+  };
 
   return (
     <>
       <div className="flex flex-col sm:flex-row justify-center items-center gap-4 my-6">
-         {/* Compare Button */}
-         <button
-          onClick={handleCompare}
+        {/* Compare Toggle Button */}
+        <button
+          onClick={handleCompareToggle}
           className="flex items-center px-4 py-2 bg-[#4AA3BA] text-white rounded-lg hover:bg-[#3b8294] transition duration-300"
         >
-          Compare
+          {isCompareMode ? 'Cancel Compare' : 'Compare'}
         </button>
-        {/* Search Bar */}
+
+        {/* Search */}
         <div className="relative w-full max-w-md">
           <input
             type="text"
@@ -95,7 +114,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
           ))}
         </select>
 
-        {/* Sort by Price Dropdown */}
+        {/* Sort Dropdown */}
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value)}
@@ -108,37 +127,63 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       </div>
 
       {/* Dentist Cards */}
-      <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredDentists.map((dentistItem: DentistItem) => (
-          <div key={dentistItem.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="relative w-full h-64">
-              <Image
-                src={dentistItem.picture}
-                alt={dentistItem.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              />
-            </div>
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">{dentistItem.name}</h2>
-              <p className="text-gray-600 mb-4">{dentistItem.area_expertise}</p>
-              <p className="text-gray-600 mb-4">Starting price: {dentistItem.StartingPrice} ฿</p>
-              { isCompareMode?
-              <div>
-              <input type="checkbox" id={`${dentistItem.id}`} value={`${dentistItem.id}`}/>
-              <label> Chose only 2</label></div> :
-              <Link
-              href={`/dentist/${dentistItem.id}`}
-              className="inline-block bg-[#4AA3BA] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#3b8294] transition duration-300">
-              View Profile and Booking
-              </Link>
-              }
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {filteredDentists.map((dentistItem: DentistItem) => {
+          const isSelected = selectedIds.includes(dentistItem.id);
+          const isDisabled = !isSelected && selectedIds.length >= 2;
 
+          return (
+            <div key={dentistItem.id} className="bg-white rounded-lg shadow-lg overflow-hidden relative">
+              <div className="relative w-full h-64">
+                <Image
+                  src={dentistItem.picture}
+                  alt={dentistItem.name}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                />
+              </div>
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">{dentistItem.name}</h2>
+                <p className="text-gray-600 mb-2">{dentistItem.area_expertise}</p>
+                <p className="text-gray-600 mb-4">Starting price: {dentistItem.StartingPrice} ฿</p>
+
+                {isCompareMode ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={isDisabled}
+                      onChange={() => handleCheckboxChange(dentistItem.id)}
+                      className="w-5 h-5"
+                    />
+                    <label>Select to Compare</label>
+                  </div>
+                ) : (
+                  <Link
+                    href={`/dentist/${dentistItem.id}`}
+                    className="inline-block bg-[#4AA3BA] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#3b8294] transition duration-300"
+                  >
+                    View Profile and Booking
+                  </Link>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </form>
+          );
+        })}
+      </div>
+
+      {/* Compare Selected Button */}
+      {isCompareMode && selectedIds.length === 2 && (
+        <div className="text-center mt-10">
+          <button
+            onClick={goToComparePage}
+            className="inline-block bg-[#4AA3BA] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#3b8294] transition duration-300"
+          >
+            Compare Selected Dentists
+          </button>
+        </div>
+      )}
     </>
   );
 }
