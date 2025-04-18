@@ -23,6 +23,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
   const [dentists, setDentists] = useState<DentistItem[]>([]);
   const [filteredDentists, setFilteredDentists] = useState<DentistItem[]>([]);
   const [areaOptions, setAreaOptions] = useState<string[]>([]);
+  const [isCompareMode, setStatusCompareMode] = useState<boolean>(false);
 
   useEffect(() => {
     dentistsJson.then(data => {
@@ -55,9 +56,20 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
     setFilteredDentists(filtered);
   }, [search, areaFilter, sortOption, dentists]);
 
+  const handleCompare = () => {
+    setStatusCompareMode(!isCompareMode);
+  }
+
   return (
     <>
       <div className="flex flex-col sm:flex-row justify-center items-center gap-4 my-6">
+         {/* Compare Button */}
+         <button
+          onClick={handleCompare}
+          className="flex items-center px-4 py-2 bg-[#4AA3BA] text-white rounded-lg hover:bg-[#3b8294] transition duration-300"
+        >
+          Compare
+        </button>
         {/* Search Bar */}
         <div className="relative w-full max-w-md">
           <input
@@ -96,7 +108,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       </div>
 
       {/* Dentist Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredDentists.map((dentistItem: DentistItem) => (
           <div key={dentistItem.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="relative w-full h-64">
@@ -112,16 +124,21 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
               <h2 className="text-2xl font-bold text-gray-800 mb-2">{dentistItem.name}</h2>
               <p className="text-gray-600 mb-4">{dentistItem.area_expertise}</p>
               <p className="text-gray-600 mb-4">Starting price: {dentistItem.StartingPrice} ฿</p>
+              { isCompareMode?
+              <div>
+              <input type="checkbox" id={`${dentistItem.id}`} value={`${dentistItem.id}`}/>
+              <label> Chose only 2</label></div> :
               <Link
-                href={`/dentist/${dentistItem.id}`}
-                className="inline-block bg-[#4AA3BA] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#3b8294] transition duration-300"
-              >
-                View Profile and Booking
+              href={`/dentist/${dentistItem.id}`}
+              className="inline-block bg-[#4AA3BA] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#3b8294] transition duration-300">
+              View Profile and Booking
               </Link>
+              }
+
             </div>
           </div>
         ))}
-      </div>
+      </form>
     </>
   );
 }
