@@ -510,7 +510,8 @@ export default function BookingHistoryCatalog({
                 {message}
               </div>
             )}
-
+            <div>Dentist: {selectedBooking.dentist.name}</div>
+            <div>At Date: {selectedBooking.bookingDate}</div>
             <textarea
               className="w-full border-b border-gray-400 p-2 text-gray-600 placeholder-gray-400 focus:outline-none focus:border-black resize-none"
               placeholder="Add Review..."
