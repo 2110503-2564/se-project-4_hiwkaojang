@@ -53,7 +53,7 @@ export default async function DentistDetailPage({ params }: { params: { did: str
         </div>
 
         {/* Reviews */}
-      <Rating />
+        <Rating dentistId={params.did} />
 
         
       </div> 
