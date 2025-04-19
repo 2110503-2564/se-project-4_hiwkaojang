@@ -1,6 +1,8 @@
 "use client";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import Rating from "@mui/material/Rating";
+import submitDentistReview from "@/libs/createReview";
 
 interface BookingItem {
   _id: string;
@@ -104,19 +106,22 @@ export default function BookingHistoryCatalog({
       case "newest":
         filtered.sort(
           (a, b) =>
-            new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()
+            new Date(b.bookingDate).getTime() -
+            new Date(a.bookingDate).getTime()
         );
         break;
       case "oldest":
         filtered.sort(
           (a, b) =>
-            new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime()
+            new Date(a.bookingDate).getTime() -
+            new Date(b.bookingDate).getTime()
         );
         break;
       default:
         filtered.sort(
           (a, b) =>
-            new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()
+            new Date(b.bookingDate).getTime() -
+            new Date(a.bookingDate).getTime()
         );
     }
 
@@ -130,7 +135,9 @@ export default function BookingHistoryCatalog({
     setDisplayedBookings(filteredBookings.slice(startIndex, endIndex));
   };
 
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleStatusFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     setStatusFilter(e.target.value);
   };
 
@@ -150,7 +157,9 @@ export default function BookingHistoryCatalog({
     }));
   };
 
-  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleItemsPerPageChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     setItemsPerPage(Number(e.target.value));
     setCurrentPage(1);
   };
@@ -241,7 +250,10 @@ export default function BookingHistoryCatalog({
     const buttons = [];
     const maxVisibleButtons = 5;
 
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisibleButtons / 2));
+    let startPage = Math.max(
+      1,
+      currentPage - Math.floor(maxVisibleButtons / 2)
+    );
     let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
 
     if (endPage - startPage + 1 < maxVisibleButtons) {
@@ -422,7 +434,42 @@ export default function BookingHistoryCatalog({
 
   //แก้ review dentist
   const ReviewModal = () => {
+    const [rating, setRating] = useState(0);
+    const [reviewText, setReviewText] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState<"success" | "error" | "">(
+      ""
+    );
+
     if (!selectedBooking || !showReviewModal) return null;
+
+    const handleSubmit = async () => {
+      try {
+        setLoading(true);
+        await submitDentistReview(
+          selectedBooking.dentist._id,
+          session.user.token,
+          rating,
+          reviewText
+        );
+        setMessage("Review submitted successfully!");
+        setMessageType("success");
+        setReviewText("");
+        setRating(5);
+        // Optional: close modal after delay
+        setTimeout(() => {
+          closeReviewModal();
+          setMessage("");
+          setMessageType("");
+        }, 2000);
+      } catch (err) {
+        setMessage("Failed to submit review. Please try again.");
+        setMessageType("error");
+      } finally {
+        setLoading(false);
+      }
+    };
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
@@ -449,28 +496,38 @@ export default function BookingHistoryCatalog({
               </svg>
             </button>
           </div>
+
           <div className="space-y-4">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Dentist ID:
-              </label>
-              <p className="border border-gray-300 rounded-md py-2 px-3 text-gray-700">
-                {selectedBooking.dentist._id}
-              </p>
-            </div>
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Dentist Name:
-              </label>
-              <p className="border border-gray-300 rounded-md py-2 px-3 text-gray-700">
-                {selectedBooking.dentist.name}
-              </p>
-            </div>
-            {/* You can add more review-related UI elements here, like rating stars or a comment textarea */}
+            {/* In-modal Alert */}
+            {message && (
+              <div
+                className={`p-2 rounded-md text-sm ${
+                  messageType === "success"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {message}
+              </div>
+            )}
+
+            <textarea
+              className="w-full border-b border-gray-400 p-2 text-gray-600 placeholder-gray-400 focus:outline-none focus:border-black resize-none"
+              placeholder="Add Review..."
+              rows={2}
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+            />
+            <Rating
+              value={rating}
+              onChange={(e, newValue) => setRating(newValue || 0)}
+            />
             <button
+              onClick={handleSubmit}
+              disabled={loading}
               className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full"
             >
-              Submit Review
+              {loading ? "Submitting..." : "Submit Review"}
             </button>
           </div>
         </div>
@@ -673,14 +730,10 @@ export default function BookingHistoryCatalog({
                 <div className="font-bold text-black text-lg mb-1">
                   Patient ID
                 </div>
-                <div className="text-sm">
-                  {session.user._id || "Patient"}
-                </div>
+                <div className="text-sm">{session.user._id || "Patient"}</div>
               </div>
               <div className="flex-0.5 min-w-[150px] px-4 border-r border-gray-300">
-                <div className="font-bold text-black text-lg mb-1">
-                  Status
-                </div>
+                <div className="font-bold text-black text-lg mb-1">Status</div>
                 <div className="text-sm">
                   <span
                     className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
@@ -695,21 +748,22 @@ export default function BookingHistoryCatalog({
                 <button
                   onClick={() => viewBookingDetails(bookingItem)}
                   className={`bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 ${
-                  bookingItem.status === "completed"? 'w-full h-1/3 text-sm mb-2' : "W-full" }`}
+                    bookingItem.status === "completed"
+                      ? "w-full h-1/3 text-sm mb-2"
+                      : "W-full"
+                  }`}
                 >
                   View Details
-                </button><br/>
-                {
-                  bookingItem.status === "completed" &&
-                  (
-                    <button
-                      onClick={() => openReviewModal(bookingItem)}
-                      className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full h-1/3 text-sm"
-                    >
-                      Review Dentist
-                    </button>
-                  )
-                }
+                </button>
+                <br />
+                {bookingItem.status === "completed" && (
+                  <button
+                    onClick={() => openReviewModal(bookingItem)}
+                    className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full h-1/3 text-sm"
+                  >
+                    Review Dentist
+                  </button>
+                )}
               </div>
             </div>
           </div>
