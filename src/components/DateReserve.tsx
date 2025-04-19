@@ -5,6 +5,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useEffect, useState } from "react";
 import { Dayjs } from "dayjs";
 import { Select, MenuItem } from "@mui/material";
+import getDentistNotAvailable from "@/libs/getDentistNotAvailable";
 
 export default function DentistDateReserve({
   onDateChange,
@@ -19,15 +20,38 @@ export default function DentistDateReserve({
 }) {
   const [reserveDate, setReserveDate] = useState<Dayjs | null>(selectedDate || null);
   const [dentist, setDentist] = useState<string>(selectedDentist || '');
+  const [notAvailableDates, setNotAvailableDates] = useState<string[]>([]); 
 
   useEffect(() => {
     if (selectedDentist) {
       setDentist(selectedDentist);
+      fetchNotAvailableDates(selectedDentist);
     }
     if (selectedDate) {
       setReserveDate(selectedDate);
     }
   }, [selectedDentist, selectedDate]);
+
+  const fetchNotAvailableDates = async (dentistId: string) => {
+    try {
+      const res = await getDentistNotAvailable(dentistId);
+      const dates = res.data.map((item: any) => item.bookingDate.split("T")[0]); 
+      setNotAvailableDates(dates);
+    } catch (error) {
+      console.error("Failed to fetch unavailable dates", error);
+    }
+  };
+
+  const handleDentistChange = (value: string) => {
+    setDentist(value);
+    onDentistChange(value);
+    fetchNotAvailableDates(value);
+  };
+
+  const disableDate = (date: Dayjs) => {
+    const formatted = date.format("YYYY-MM-DD");
+    return notAvailableDates.includes(formatted);
+  };
 
   return (
     <div className="bg-slate-100 rounded-lg p-8 flex flex-col items-center space-y-6 w-full max-w-md mx-auto">
@@ -40,10 +64,7 @@ export default function DentistDateReserve({
             name="dentist"
             id="dentist"
             value={dentist}
-            onChange={(e) => {
-              setDentist(e.target.value);
-              onDentistChange(e.target.value);
-            }}
+            onChange={(e) => handleDentistChange(e.target.value)}
             className="h-12"
           >
             <MenuItem value="67fde0a05a0148bd6061706c">Dr. John Carter</MenuItem>
@@ -63,12 +84,13 @@ export default function DentistDateReserve({
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateTimePicker
               className="w-full"
-              slotProps={{ 
-                textField: { 
+              slotProps={{
+                textField: {
                   fullWidth: true,
-                  variant: 'outlined'
-                } 
+                  variant: "outlined",
+                },
               }}
+              shouldDisableDate={disableDate}
               value={reserveDate}
               onChange={(value) => {
                 setReserveDate(value);
