@@ -2,6 +2,20 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
+interface BookingItem {
+  _id: string;
+  bookingDate: string;
+  status: string;
+  dentist: {
+    _id: string;
+    name: string;
+  };
+}
+
+interface BookingJson {
+  data: BookingItem[];
+}
+
 export default function BookingHistoryCatalog({
   bookingJson,
 }: {
@@ -29,13 +43,13 @@ export default function BookingHistoryCatalog({
     null
   );
   const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
+  const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchBookingData() {
       try {
         const data = await bookingJson;
         setBookingJsonReady(data);
-
         applyFiltersAndSort(data.data);
       } catch (error) {
         console.error("Failed to load bookings:", error);
@@ -148,6 +162,16 @@ export default function BookingHistoryCatalog({
 
   const closeDetailModal = () => {
     setShowDetailModal(false);
+    setSelectedBooking(null);
+  };
+
+  const openReviewModal = (booking: BookingItem) => {
+    setSelectedBooking(booking);
+    setShowReviewModal(true);
+  };
+
+  const closeReviewModal = () => {
+    setShowReviewModal(false);
     setSelectedBooking(null);
   };
 
@@ -396,6 +420,64 @@ export default function BookingHistoryCatalog({
     );
   };
 
+  //แก้ review dentist
+  const ReviewModal = () => {
+    if (!selectedBooking || !showReviewModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+        <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-[#4AA3BA]">Review Dentist</h2>
+            <button
+              onClick={closeReviewModal}
+              className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Dentist ID:
+              </label>
+              <p className="border border-gray-300 rounded-md py-2 px-3 text-gray-700">
+                {selectedBooking.dentist._id}
+              </p>
+            </div>
+            <div>
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Dentist Name:
+              </label>
+              <p className="border border-gray-300 rounded-md py-2 px-3 text-gray-700">
+                {selectedBooking.dentist.name}
+              </p>
+            </div>
+            {/* You can add more review-related UI elements here, like rating stars or a comment textarea */}
+            <button
+              className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full"
+            >
+              Submit Review
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
       <div className="bg-white p-4 rounded-xl shadow-md">
@@ -621,6 +703,7 @@ export default function BookingHistoryCatalog({
                   bookingItem.status === "completed" &&
                   (
                     <button
+                      onClick={() => openReviewModal(bookingItem)}
                       className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full h-1/3 text-sm"
                     >
                       Review Dentist
@@ -650,6 +733,7 @@ export default function BookingHistoryCatalog({
       )}
 
       <BookingDetailModal />
+      <ReviewModal />
     </div>
   );
 }
