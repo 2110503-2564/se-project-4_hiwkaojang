@@ -432,45 +432,138 @@ export default function BookingHistoryCatalog({
     );
   };
 
-  //แก้ review dentist
   const ReviewModal = () => {
-    const [rating, setRating] = useState(0);
+    const [rating, setRating] = useState<number | null>(0);
     const [reviewText, setReviewText] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [messageType, setMessageType] = useState<"success" | "error" | "">(
       ""
     );
+    
+    const [validationErrors, setValidationErrors] = useState<{
+      rating?: string;
+      reviewText?: string;
+    }>({});
 
+    const MAX_REVIEW_LENGTH = 500;
+    const MIN_REVIEW_LENGTH = 10;
+    
+    const [touched, setTouched] = useState({
+      rating: false,
+      reviewText: false
+    });
+  
     if (!selectedBooking || !showReviewModal) return null;
-
+    
+    const handleFieldTouch = (field: 'rating' | 'reviewText') => {
+      setTouched(prev => ({
+        ...prev,
+        [field]: true
+      }));
+      
+      validateField(field);
+    };
+    
+    const validateField = (field: 'rating' | 'reviewText') => {
+      const newErrors = { ...validationErrors };
+      
+      if (field === 'rating') {
+        if (!rating || rating === 0) {
+          newErrors.rating = "Please select a rating";
+        } else {
+          delete newErrors.rating;
+        }
+      }
+      
+      if (field === 'reviewText') {
+        if (!reviewText.trim()) {
+          newErrors.reviewText = "Please add your review comment";
+        } else if (reviewText.trim().length < MIN_REVIEW_LENGTH) {
+          newErrors.reviewText = `Review comment must be at least ${MIN_REVIEW_LENGTH} characters`;
+        } else if (reviewText.trim().length > MAX_REVIEW_LENGTH) {
+          newErrors.reviewText = `Review comment must not exceed ${MAX_REVIEW_LENGTH} characters`;
+        } else if (/^\s*$/.test(reviewText)) {
+          newErrors.reviewText = "Review cannot be only whitespace";
+        } else {
+          delete newErrors.reviewText;
+        }
+      }
+      
+      setValidationErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+    
+    const validateForm = () => {
+      setTouched({
+        rating: true,
+        reviewText: true
+      });
+      
+      const ratingValid = validateField('rating');
+      const reviewTextValid = validateField('reviewText');
+      
+      return ratingValid && reviewTextValid;
+    };
+  
     const handleSubmit = async () => {
+      if (!validateForm()) {
+        return;
+      }
+      
       try {
         setLoading(true);
+        
+        if (!rating) {
+          throw new Error("Rating is required");
+        }
+        
         await submitDentistReview(
           selectedBooking.dentist._id,
           session.user.token,
           rating,
           reviewText
         );
-        setMessage("Review submitted successfully!");
+        
+        setMessage("Thank you! Your review has been submitted successfully.");
         setMessageType("success");
+        
         setReviewText("");
         setRating(5);
-        // Optional: close modal after delay
+        setValidationErrors({});
+        setTouched({ rating: false, reviewText: false });
+        
         setTimeout(() => {
           closeReviewModal();
           setMessage("");
           setMessageType("");
         }, 2000);
       } catch (err) {
-        setMessage("Failed to submit review. Please try again.");
+        console.error("Review submission error:", err);
+        setMessage("Failed to submit review. Please try again later.");
         setMessageType("error");
       } finally {
         setLoading(false);
       }
     };
-
+    
+    const handleReviewTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      setReviewText(value);
+      
+      if (touched.reviewText) {
+        validateField('reviewText');
+      }
+    };
+    
+    const handleRatingChange = (_: React.SyntheticEvent, newValue: number | null) => {
+      setRating(newValue);
+      
+      if (touched.rating) {
+        validateField('rating');
+      }
+    };
+  
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
         <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
@@ -496,39 +589,122 @@ export default function BookingHistoryCatalog({
               </svg>
             </button>
           </div>
-
+          
           <div className="space-y-4">
-            {/* In-modal Alert */}
             {message && (
               <div
-                className={`p-2 rounded-md text-sm ${
+                className={`p-3 rounded-md ${
                   messageType === "success"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
+                    ? "bg-green-100 text-green-700 border border-green-300"
+                    : "bg-red-100 text-red-700 border border-red-300"
+                } flex items-start`}
               >
+                <span className="mr-2">
+                  {messageType === "success" ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </span>
                 {message}
               </div>
             )}
-            <div>Dentist: {selectedBooking.dentist.name}</div>
-            <div>At Date: {selectedBooking.bookingDate}</div>
-            <textarea
-              className="w-full border-b border-gray-400 p-2 text-gray-600 placeholder-gray-400 focus:outline-none focus:border-black resize-none"
-              placeholder="Add Review..."
-              rows={2}
-              value={reviewText}
-              onChange={(e) => setReviewText(e.target.value)}
-            />
-            <Rating
-              value={rating}
-              onChange={(e, newValue) => setRating(newValue || 0)}
-            />
+            
+            <div className="bg-gray-50 p-3 rounded-md mb-4">
+              <div className="font-medium text-gray-800">Dentist: {selectedBooking.dentist.name}</div>
+              <div className="text-sm text-gray-600">Appointment Date: {formatDate(selectedBooking.bookingDate)}</div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Your Rating
+              </label>
+              <div className="flex items-center" onBlur={() => handleFieldTouch('rating')}>
+                <Rating
+                  value={rating}
+                  onChange={handleRatingChange}
+                  size="large"
+                  precision={1}
+                />
+                <span className="ml-2 text-sm text-gray-500">
+                  {rating ? `${rating} star${rating !== 1 ? 's' : ''}` : 'Select rating'}
+                </span>
+              </div>
+              {touched.rating && validationErrors.rating && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {validationErrors.rating}
+                </p>
+              )}
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="reviewText" className="block text-gray-700 font-medium mb-2">
+                Your Review
+              </label>
+              <textarea
+                id="reviewText"
+                className={`w-full border rounded-md p-3 text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4AA3BA] resize-none transition ${
+                  touched.reviewText && validationErrors.reviewText 
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                    : "border-gray-300 focus:border-[#4AA3BA]"
+                }`}
+                placeholder="Share your experience with this dentist..."
+                rows={4}
+                value={reviewText}
+                onChange={handleReviewTextChange}
+                onBlur={() => handleFieldTouch('reviewText')}
+                maxLength={MAX_REVIEW_LENGTH}
+              />
+              
+              {/* Character counter */}
+              <div className="flex justify-between text-xs mt-1">
+                <div>
+                  {touched.reviewText && validationErrors.reviewText ? (
+                    <p className="text-red-500 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {validationErrors.reviewText}
+                    </p>
+                  ) : (
+                    <span className="text-gray-500">Minimum {MIN_REVIEW_LENGTH} characters</span>
+                  )}
+                </div>
+                <span className={`${
+                  reviewText.length > MAX_REVIEW_LENGTH * 0.9 
+                    ? "text-orange-500" 
+                    : "text-gray-500"
+                }`}>
+                  {reviewText.length}/{MAX_REVIEW_LENGTH}
+                </span>
+              </div>
+            </div>
+            
             <button
               onClick={handleSubmit}
-              disabled={loading}
-              className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full"
+              disabled={loading || Object.keys(validationErrors).length > 0}
+              className={`mt-2 bg-[#4AA3BA] text-white px-4 py-3 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full flex justify-center items-center font-medium ${
+                (loading || Object.keys(validationErrors).length > 0) 
+                  ? "opacity-70 cursor-not-allowed" 
+                  : "opacity-100"
+              }`}
             >
-              {loading ? "Submitting..." : "Submit Review"}
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Submitting...
+                </>
+              ) : "Submit Review"}
             </button>
           </div>
         </div>
@@ -751,7 +927,7 @@ export default function BookingHistoryCatalog({
                   className={`bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 ${
                     bookingItem.status === "completed"
                       ? "w-full h-1/3 text-sm mb-2"
-                      : "W-full"
+                      : "w-full"
                   }`}
                 >
                   View Details
