@@ -1,6 +1,6 @@
 export default async function createBooking(did:string, token: string, userBookingDate: string) {
 
-    const response = await fetch(`http://localhost:5001/api/v1/dentists/${did}/bookings`, {
+    const response = await fetch(`${process.env.BACKEND_URL}/api/v1/dentists/${did}/bookings`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

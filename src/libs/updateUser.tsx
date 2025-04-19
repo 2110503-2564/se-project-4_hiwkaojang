@@ -6,7 +6,7 @@ export default async function updateUser(
     await new Promise((resolve) => setTimeout(resolve, 300));
   
     const response = await fetch(
-      `http://localhost:5001/api/v1/users/${uid}`,
+      `${process.env.BACKEND_URL}/api/v1/users/${uid}`,
       {
         method: "PUT",
         headers: {

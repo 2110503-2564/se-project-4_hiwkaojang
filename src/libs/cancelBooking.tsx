@@ -3,7 +3,7 @@ export default async function cancelBooking(
     token: string
   ) {
     const response = await fetch(
-      `http://localhost:5001/api/v1/bookings/${bid}`,
+      `${process.env.BACKEND_URL}/api/v1/bookings/${bid}`,
       {
         method: "PUT",
         headers: {
