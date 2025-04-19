@@ -612,15 +612,16 @@ export default function BookingHistoryCatalog({
               <div className="flex-0.5 min-w-[120px] px-4">
                 <button
                   onClick={() => viewBookingDetails(bookingItem)}
-                  className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full"
+                  className={`bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 ${
+                  bookingItem.status === "completed"? 'w-full h-1/3 text-sm mb-2' : "W-full" }`}
                 >
                   View Details
-                </button>
+                </button><br/>
                 {
                   bookingItem.status === "completed" &&
                   (
                     <button
-                      className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full"
+                      className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full h-1/3 text-sm"
                     >
                       Review Dentist
                     </button>
