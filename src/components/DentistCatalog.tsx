@@ -164,7 +164,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
                       onChange={() => handleCheckboxChange(dentistItem.id)}
                       className="w-5 h-5"
                     />
-                    <label>Select to Compare</label>
+                    <label className={`${(isCompareMode && selectedIds.length===2)?  'text-gray-400' : 'text-black' }`}>Select to Compare</label>
                   </div>
                 ) : (
                   <Link
@@ -193,9 +193,10 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       )}
       {/* ส่วนอื่นๆ ของ Component */}
       <br/>
-      <div className="text-center" ref={bottomRef}>
-        This is this Bottom
-        <p className={`${(isCompareMode && selectedIds.length===2)?  'block' : 'hidden' } text-green-500 text-center`}>Can Select only 2 Dent<br/>Pless click Compare Selected Dentists for Compare</p>
+      <div className={`${(isCompareMode && selectedIds.length===2)?  'block' : 'hidden' } text-red-500 text-center text-md`}>You can select a maximum of 2 dentists.<br/><div className='text-green-600'>To change dentists for comparison, please deselect before selecting another.<br/>Click 'Compare Selected Dentists' to view the comparison.</div></div>
+      <br/>
+      <div className="text-center text-xl font-bold " ref={bottomRef}>
+      Bottom of page
       </div>
     </>
   );

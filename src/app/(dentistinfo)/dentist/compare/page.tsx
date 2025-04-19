@@ -86,7 +86,7 @@ export default function CompareDentistPage() {
         <div className="text-center mb-5">
           <Link href="/dentist">
             <button className="bg-[#4AA3BA] hover:bg-[#3b8294] text-white font-semibold py-2 px-6 rounded-full shadow-sm transition">
-              ← Back to Dentist Page
+              ← Back to Dentists Page
             </button>
           </Link>
         </div>
