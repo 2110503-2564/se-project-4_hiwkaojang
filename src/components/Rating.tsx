@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useReducer } from "react";
-import Card from "./Card";
 import getReviewsDentist from "@/libs/getReviewsDentist";
 
 type RatingData = {
@@ -59,15 +58,7 @@ export default function DentistRating({ dentistId }: { dentistId: string }) {
   return (
     <div className="w-full min-h-screen px-10">
       <h1 className="text-3xl font-bold text-black py-10 px-10">Review</h1>
-      <h2 className="text-xl font-semibold text-black px-14">John Wick</h2>
-
       <div className="px-14 space-y-6 py-6">
-        <Card
-          dentistName="Dr. John Carter"
-          onRate={(dentistName, rating, review) =>
-            dispatchChange({ type: 'change', dentistName, data: { rating, review } })}
-        />
-
         <div className="pt-10">
           <h3 className="font-medium text-gray-700">⭐️ Ratings Collected:</h3>
           {Array.from(ratingList.entries()).map(([name, data]) => (
