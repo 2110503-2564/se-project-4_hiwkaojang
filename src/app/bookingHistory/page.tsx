@@ -78,22 +78,6 @@ export default async function Manage() {
             </Suspense>
           </div>)
         }
-        
-        {profile.data.role === "admin" && (
-          <div>
-            <div className="items-center mt-12">
-              <div className="flex mt-3 text-2xl font-semibold p-5">
-                <p className="text-gray-800">Manage </p>
-                <p className="text-[#4AA3BA] ml-1">User Account</p>
-              </div>
-            </div>
-            <div className="container mx-auto px-6 py-12">
-              <Suspense fallback={<p className="text-center">Loading...</p>}>
-                <UserCatalog usersJson={userJson} />
-              </Suspense>
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );

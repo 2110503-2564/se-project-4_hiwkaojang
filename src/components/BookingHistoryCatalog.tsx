@@ -616,6 +616,16 @@ export default function BookingHistoryCatalog({
                 >
                   View Details
                 </button>
+                {
+                  bookingItem.status === "completed" &&
+                  (
+                    <button
+                      className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full"
+                    >
+                      Review Dentist
+                    </button>
+                  )
+                }
               </div>
             </div>
           </div>
