@@ -122,7 +122,9 @@ export default function CompareDentistPage() {
                   }
                 >
                   <strong>Years of Experience:</strong>{" "}
-                  {dentist.year_experience} Years
+                  {dentist.year_experience} Years {experienceBetter[idx]
+                      ? "✅"
+                      : ""}
                 </p>
                 <p
                   className={
@@ -131,7 +133,9 @@ export default function CompareDentistPage() {
                       : "text-red-500"
                   }
                 >
-                  <strong>Starting Price:</strong> {dentist.StartingPrice} ฿
+                  <strong>Starting Price:</strong> {dentist.StartingPrice} ฿  {priceBetter[idx]
+                      ? "✅"
+                      : ""}
                 </p>
               </div>
               <div className="mt-6">
