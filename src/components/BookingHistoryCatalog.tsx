@@ -74,7 +74,8 @@ export default function BookingHistoryCatalog({
   const applyFiltersAndSort = (bookings: BookingItem[]) => {
     if (!bookings) return;
 
-    let filtered = bookings;
+    let filtered = [...bookings];
+  
     if (statusFilter !== "all") {
       filtered = filtered.filter((booking) => booking.status === statusFilter);
     }
@@ -85,7 +86,7 @@ export default function BookingHistoryCatalog({
         (booking) => new Date(booking.bookingDate) >= startDate
       );
     }
-    if (dateRange.end) {
+   if (dateRange.end) {
       const endDate = new Date(dateRange.end);
       endDate.setHours(23, 59, 59, 999);
       filtered = filtered.filter(
@@ -99,34 +100,25 @@ export default function BookingHistoryCatalog({
         (booking) =>
           booking.dentist.name.toLowerCase().includes(term) ||
           booking._id.toLowerCase().includes(term)
-      );
+     );
     }
 
-    switch (sortOption) {
-      case "newest":
-        filtered.sort(
-          (a, b) =>
-            new Date(b.bookingDate).getTime() -
-            new Date(a.bookingDate).getTime()
-        );
-        break;
-      case "oldest":
-        filtered.sort(
-          (a, b) =>
-            new Date(a.bookingDate).getTime() -
-            new Date(b.bookingDate).getTime()
-        );
-        break;
-      default:
-        filtered.sort(
-          (a, b) =>
-            new Date(b.bookingDate).getTime() -
-            new Date(a.bookingDate).getTime()
-        );
-    }
+    const sortedBookings = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.bookingDate).getTime();
+      const dateB = new Date(b.bookingDate).getTime();
+    
+     switch (sortOption) {
+        case "newest":
+          return dateB - dateA;
+        case "oldest":
+          return dateA - dateB;
+        default:
+          return dateB - dateA; 
+      }
+    });
 
-    setFilteredBookings(filtered);
-    setTotalPages(Math.max(1, Math.ceil(filtered.length / itemsPerPage)));
+    setFilteredBookings(sortedBookings);
+    setTotalPages(Math.max(1, Math.ceil(sortedBookings.length / itemsPerPage)));
   };
 
   const updateDisplayedBookings = () => {
