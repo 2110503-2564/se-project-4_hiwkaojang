@@ -8,7 +8,6 @@ export default async function DentistDetailPage({ params }: { params: { did: str
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="w-full bg-gray-100 py-12 text-center">
         <h1 className="text-4xl font-bold text-gray-900">Dentists</h1>
         <div className="mt-2 text-sm text-gray-600">
