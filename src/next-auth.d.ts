@@ -8,7 +8,8 @@ declare module "next-auth" {
             email: string,
             telephone: string,
             role: string,
-            token: string
+            token: string,
+            dentist_id?: string
         }
     }
 }

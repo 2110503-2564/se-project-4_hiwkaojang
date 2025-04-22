@@ -3,10 +3,30 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import getUserProfile from '@/libs/getUserProfile';
 
 export default function TopMenu() {
   const { data: session } = useSession();
   const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchUserRole() {
+      if (session?.user?.token) {
+        try {
+          const userProfile = await getUserProfile(session.user.token);
+          if (userProfile.data?.role) {
+            setUserRole(userProfile.data.role);
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      }
+    }
+
+    fetchUserRole();
+  }, [session]);
 
   const handleSignOut = async () => {
     await signOut({ redirect: false });
@@ -92,6 +112,13 @@ export default function TopMenu() {
           <Link href="/dentist" className="text-black hover:text-gray-600 font-semibold text-lg">
             Dentists
           </Link>
+          
+          {userRole === 'dentist' && (
+            <Link href="/dentist/profile" className="text-black hover:text-gray-600 font-semibold text-lg">
+              My Profile
+            </Link>
+          )}
+          
           {session?.user?.token && (
             <a 
               href="/manage" 
