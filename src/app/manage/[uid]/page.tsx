@@ -19,6 +19,7 @@ export default function EditUser({ params }: { params: { uid: string } }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [dentistId, setDentistId] = useState<string>("");
 
   // Redirect if not logged in
   useEffect(() => {
@@ -47,18 +48,18 @@ export default function EditUser({ params }: { params: { uid: string } }) {
       setError("Please select a role.");
       return;
     }
-
+  
     if (!session?.user?.token) {
       setError("You must be logged in to edit user.");
       return;
     }
-
+  
     setLoading(true);
     setError(null);
     setSuccess(null);
-
+  
     try {
-      await updateUser(session.user.token, params.uid, role);
+      await updateUser(session.user.token, params.uid, role, dentistId);
       setSuccess("User Edited!");
     } catch (err) {
       setError("Failed to edit user.");
@@ -66,7 +67,7 @@ export default function EditUser({ params }: { params: { uid: string } }) {
       setLoading(false);
     }
   };
-
+  
   if (!userJson) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
@@ -124,7 +125,10 @@ export default function EditUser({ params }: { params: { uid: string } }) {
             Telephone: <span className="font-normal">{telephone}</span>
           </h2>
           <UserEditor
-            onRoleChange={(value: string) => setRole(value)}
+            onRoleChange={(role: string, id?: string) => {
+              setRole(role);
+              setDentistId(id || "");
+            }}
             selectedRole={role}
           />
 
