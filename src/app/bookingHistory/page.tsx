@@ -33,6 +33,15 @@ export default async function Manage() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        {profile.data.role === "dentist" && (
+          <div className="container mx-auto px-6 py-12">
+            <Suspense fallback={<p className="text-center">Loading...</p>}>
+              <BookingHistoryCatalog bookingJson={bookingJson} />
+            </Suspense>
+          </div>
+        )}
+        
         {profile.data.role === "admin" &&
           (
             <div className="text-center mb-8">
