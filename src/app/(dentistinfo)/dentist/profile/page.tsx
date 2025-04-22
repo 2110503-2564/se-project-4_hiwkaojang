@@ -46,8 +46,11 @@ export default function DentistProfilePage() {
           return;
         }
 
+        // Add a cache-busting parameter to avoid browser caching
+        const cacheBuster = new Date().getTime();
+        
         // Fetch the dentist data using the dentist_id from the user profile
-        const dentistResponse = await getDentist(userProfile.data.dentist_id);
+        const dentistResponse = await getDentist(userProfile.data.dentist_id + `?_cb=${cacheBuster}`);
         if (dentistResponse.sucess && dentistResponse.data) {
           setDentistData(dentistResponse.data);
         } else {

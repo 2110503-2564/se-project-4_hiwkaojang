@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 interface DentistItem {
   id: number;
   name: string;
-  area_expertise: string;
+  area_expertise: string | string[];
   StartingPrice: number;
   picture: string;
 }
@@ -27,15 +27,26 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
   const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const router = useRouter();
-  const bottomRef = useRef<HTMLDivElement>(null); // สร้าง ref ที่นี่
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     dentistsJson.then(data => {
       setDentists(data.data);
       setFilteredDentists(data.data);
 
-      const uniqueAreas = Array.from(new Set(data.data.map(d => d.area_expertise)));
-      setAreaOptions(['All', ...uniqueAreas]);
+      // Collect all unique areas of expertise
+      const allAreas = new Set<string>();
+      allAreas.add('All');
+      
+      data.data.forEach(dentist => {
+        if (Array.isArray(dentist.area_expertise)) {
+          dentist.area_expertise.forEach(area => allAreas.add(area));
+        } else if (typeof dentist.area_expertise === 'string') {
+          allAreas.add(dentist.area_expertise);
+        }
+      });
+      
+      setAreaOptions(Array.from(allAreas));
     });
   }, [dentistsJson]);
 
@@ -45,9 +56,16 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
     );
 
     if (areaFilter !== 'All') {
-      filtered = filtered.filter(d =>
-        d.area_expertise.toLowerCase() === areaFilter.toLowerCase()
-      );
+      filtered = filtered.filter(d => {
+        if (Array.isArray(d.area_expertise)) {
+          return d.area_expertise.some(area => 
+            area.toLowerCase() === areaFilter.toLowerCase()
+          );
+        } else if (typeof d.area_expertise === 'string') {
+          return d.area_expertise.toLowerCase() === areaFilter.toLowerCase();
+        }
+        return false;
+      });
     }
 
     if (sortOption === 'asc') {
@@ -84,6 +102,14 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [isCompareMode, selectedIds]);
+
+  // Helper function to format expertise areas for display
+  const formatExpertiseAreas = (expertise: string | string[]): string => {
+    if (Array.isArray(expertise)) {
+      return expertise.join(', ');
+    }
+    return expertise;
+  };
 
   return (
     <>
@@ -152,7 +178,7 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
               </div>
               <div className="p-6">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">{dentistItem.name}</h2>
-                <p className="text-gray-600 mb-2">{dentistItem.area_expertise}</p>
+                <p className="text-gray-600 mb-2">{formatExpertiseAreas(dentistItem.area_expertise)}</p>
                 <p className="text-gray-600 mb-4">Starting price: {dentistItem.StartingPrice} ฿</p>
 
                 {isCompareMode ? (
@@ -191,12 +217,10 @@ export default function DentistCatalog({ dentistsJson }: DentistCatalogProps) {
           </button>
         </div>
       )}
-      {/* ส่วนอื่นๆ ของ Component */}
-      <br/>
       <div className={`${(isCompareMode && selectedIds.length===2)?  'block' : 'hidden' } text-red-500 text-center text-md`}>You can select a maximum of 2 dentists.<br/><div className='text-green-600'>To change dentists for comparison, please deselect before selecting another.<br/>Click 'Compare Selected Dentists' to view the comparison.</div></div>
       <br/>
       <div className="text-center text-xl font-bold " ref={bottomRef}>
-      Bottom of page
+        Bottom of page
       </div>
     </>
   );

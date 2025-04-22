@@ -1,8 +1,20 @@
 export default async function getDentist(id: string) {
-    const response =await fetch(`${process.env.BACKEND_URL}/api/v1/dentists/${id}`)
+    // Remove any query parameters from the ID for the actual API call
+    const cleanId = id.split('?')[0];
+    
+    // Add a cache-busting timestamp to prevent browser caching
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${process.env.BACKEND_URL}/api/v1/dentists/${cleanId}?_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+    });
+    
     if(!response.ok) {
-        throw new Error("Failed to fetch dentist")
+        throw new Error("Failed to fetch dentist");
     }
 
-    return await response.json()
+    return await response.json();
 }

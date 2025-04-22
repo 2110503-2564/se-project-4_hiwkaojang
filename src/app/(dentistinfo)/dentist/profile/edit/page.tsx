@@ -196,7 +196,8 @@ export default function EditDentistProfilePage() {
         // Consider success if we got this far without errors
         setSuccess('Profile updated successfully!');
         setTimeout(() => {
-          router.push('/dentist/profile');
+          // Force a page refresh when navigating back to ensure new data is loaded
+          window.location.href = '/dentist/profile';
         }, 2000);
       } catch (updateError: any) {
         console.error('Update error:', updateError);
