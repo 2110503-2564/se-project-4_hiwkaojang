@@ -9,27 +9,19 @@ import getUserProfile from '@/libs/getUserProfile';
 import getDentist from '@/libs/getDentist';
 import updateDentist from '@/libs/updateDentist';
 import addDentistExpertise from '@/libs/addDentistExpertise';
+import ExpertiseTagSelector from '@/components/ExpertiseTagSelector ';
 import { 
   CircularProgress, 
   TextField, 
   Button,
   Snackbar, 
   Alert,
-  Select,
-  MenuItem,
   FormControl,
   InputLabel,
+  Select,
+  MenuItem,
   SelectChangeEvent,
 } from '@mui/material';
-
-interface DentistData {
-  _id: string;
-  name: string;
-  area_expertise: string[];
-  year_experience: number;
-  StartingPrice: number;
-  picture: string;
-}
 
 const expertiseOptions = [
   'Orthodontics', 
@@ -53,7 +45,6 @@ export default function EditDentistProfilePage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [dentistId, setDentistId] = useState<string>('');
   
-  // Form state
   const [formData, setFormData] = useState<Partial<DentistData>>({
     name: '',
     area_expertise: [],
@@ -62,19 +53,12 @@ export default function EditDentistProfilePage() {
     picture: ''
   });
 
-  // Selected expertise for display
   const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
-  // Available options to select from (excluding already selected ones)
-  const [availableExpertise, setAvailableExpertise] = useState<string[]>(expertiseOptions);
-  // Currently selected option in dropdown
-  const [currentExpertiseSelection, setCurrentExpertiseSelection] = useState<string>('');
 
-  // Bio field
   const [bio, setBio] = useState<string>('');
   const [bioCharCount, setBioCharCount] = useState<number>(0);
   const MAX_BIO_LENGTH = 150;
 
-  // Original data for comparison to detect changes
   const [originalData, setOriginalData] = useState<Partial<DentistData> | null>(null);
 
   useEffect(() => {
@@ -105,6 +89,7 @@ export default function EditDentistProfilePage() {
             ? dentistData.area_expertise 
             : [dentistData.area_expertise];
           
+          setSelectedExpertise(expertise);
           setFormData({
             name: dentistData.name,
             area_expertise: expertise,
@@ -112,8 +97,6 @@ export default function EditDentistProfilePage() {
             StartingPrice: dentistData.StartingPrice,
             picture: dentistData.picture
           });
-          setSelectedExpertise(expertise);
-          setAvailableExpertise(expertiseOptions.filter(exp => !expertise.includes(exp)));
           setOriginalData(dentistData);
         } else {
           setError('Failed to load dentist profile');
@@ -144,27 +127,6 @@ export default function EditDentistProfilePage() {
     }
   };
 
-  const handleExpertiseSelection = (event: SelectChangeEvent<string>) => {
-    setCurrentExpertiseSelection(event.target.value as string);
-  };
-
-  const addExpertise = () => {
-    if (currentExpertiseSelection && !selectedExpertise.includes(currentExpertiseSelection)) {
-      const updatedSelected = [...selectedExpertise, currentExpertiseSelection];
-      setSelectedExpertise(updatedSelected);
-      setFormData({ ...formData, area_expertise: updatedSelected });
-      setAvailableExpertise(expertiseOptions.filter(exp => !updatedSelected.includes(exp)));
-      setCurrentExpertiseSelection('');
-    }
-  };
-
-  const removeExpertise = (expertiseToRemove: string) => {
-    const updatedSelected = selectedExpertise.filter(exp => exp !== expertiseToRemove);
-    setSelectedExpertise(updatedSelected);
-    setFormData({ ...formData, area_expertise: updatedSelected });
-    setAvailableExpertise([...availableExpertise, expertiseToRemove].sort());
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -176,7 +138,7 @@ export default function EditDentistProfilePage() {
     try {
       setSaving(true);
       
-      // Validate form data
+      // Validate form
       if (!formData.area_expertise || formData.area_expertise.length === 0) {
         setError('Please select at least one area of expertise');
         setSaving(false);
@@ -198,24 +160,20 @@ export default function EditDentistProfilePage() {
       console.log('Session user token:', session.user.token.slice(0, 10) + '...');
       console.log('Dentist ID:', dentistId);
       
-      // Combine all updates into a single request for better consistency
       try {
-        // Create a complete update data object with all fields
         const updateData = {
           year_experience: formData.year_experience,
           StartingPrice: formData.StartingPrice,
           picture: formData.picture,
           area_expertise: formData.area_expertise,
-          bio: bio // Add bio if backend supports it
+          bio: bio
         };
         
         console.log('Updating dentist profile with data:', updateData);
         
-        // Try updating everything at once first
         const result = await updateDentist(dentistId, session.user.token, updateData);
         console.log('Profile update result:', result);
         
-        // If that fails specifically for expertise, try the specialized expertise update
         if (!result.success && JSON.stringify(formData.area_expertise) !== JSON.stringify(originalData?.area_expertise)) {
           console.log('Falling back to expertise-specific update...');
           const expertiseResult = await addDentistExpertise(
@@ -226,10 +184,8 @@ export default function EditDentistProfilePage() {
           console.log('Expertise update result:', expertiseResult);
         }
         
-        // Consider success if we got this far without errors
         setSuccess('Profile updated successfully!');
         setTimeout(() => {
-          // Force a complete page reload when navigating back
           window.location.href = '/dentist/profile';
         }, 2000);
       } catch (updateError: any) {
@@ -298,11 +254,11 @@ export default function EditDentistProfilePage() {
             </div>
             <div>
               <h2 className="text-xl font-bold">{formData.name}</h2>
-              <p className="text-gray-600">@{formData.name}</p>
+              <p className="text-gray-600">@ {formData.name}</p>
             </div>
             <div className="ml-auto">
               <button 
-                className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md transition-colors"
+                className="bg-[#4AA3BA] hover:bg-[#3b8294] text-white px-4 py-2 rounded-md font-medium transition-colors"
                 onClick={() => document.getElementById('pictureUrl')?.focus()}
               >
                 Change Photo
@@ -329,49 +285,15 @@ export default function EditDentistProfilePage() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-bold mb-4">Area of expertise</h2>
           
-          <div className="flex flex-wrap gap-2 mb-4">
-            {selectedExpertise.map((expertise) => (
-              <div key={expertise} className="bg-gray-100 rounded-full px-3 py-1 flex items-center">
-                <span className="text-gray-800">{expertise}</span>
-                <button 
-                  onClick={() => removeExpertise(expertise)}
-                  className="ml-2 text-gray-500 hover:text-gray-700"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-          
-          <div className="flex gap-2">
-            <FormControl variant="outlined" size="small" fullWidth>
-              <InputLabel id="expertise-select-label">Select Expertise</InputLabel>
-              <Select
-                labelId="expertise-select-label"
-                id="expertise-select"
-                value={currentExpertiseSelection}
-                onChange={handleExpertiseSelection}
-                label="Select Expertise"
-              >
-                <MenuItem value="" disabled><em>Select an option</em></MenuItem>
-                {availableExpertise.map((option) => (
-                  <MenuItem key={option} value={option}>{option}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Button 
-              variant="contained" 
-              onClick={addExpertise}
-              disabled={!currentExpertiseSelection}
-              style={{ 
-                backgroundColor: '#4AA3BA', 
-                minWidth: '80px',
-                height: '40px'
-              }}
-            >
-              Add
-            </Button>
-          </div>
+          <ExpertiseTagSelector
+            selectedTags={selectedExpertise}
+            onChange={(tags) => {
+              setSelectedExpertise(tags);
+              setFormData({ ...formData, area_expertise: tags });
+            }}
+            buttonColor="#3b82f6"
+            buttonHoverColor="#2563eb"
+          />
         </div>
         
         {/* Years of Experience Section */}
