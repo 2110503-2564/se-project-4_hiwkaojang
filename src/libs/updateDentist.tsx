@@ -3,12 +3,17 @@ export default async function updateDentist(id: string, token: string, updateDat
     console.log('Updating dentist with ID:', id);
     console.log('Update data:', updateData);
     
-    const response = await fetch(`${process.env.BACKEND_URL}/api/v1/dentists/${id}`, {
+    const timestamp = new Date().getTime();
+    
+    const response = await fetch(`${process.env.BACKEND_URL}/api/v1/dentists/${id}?_t=${timestamp}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        authorization: `Bearer ${token}`
+        authorization: `Bearer ${token}`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-store',
       body: JSON.stringify(updateData)
     });
     
@@ -20,12 +25,11 @@ export default async function updateDentist(id: string, token: string, updateDat
       throw new Error(`Failed to update dentist information: ${response.status} ${responseText}`);
     }
     
-    // Try to parse the response as JSON
     try {
       return JSON.parse(responseText);
     } catch (parseError) {
       console.error('Error parsing response as JSON:', parseError);
-      return { sucess: false, message: 'Invalid response format' };
+      return { success: true, message: 'Update successful but received invalid JSON response' };
     }
   } catch (error) {
     console.error('Error in updateDentist:', error);

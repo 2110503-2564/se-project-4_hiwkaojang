@@ -198,14 +198,26 @@ export default function EditDentistProfilePage() {
       console.log('Session user token:', session.user.token.slice(0, 10) + '...');
       console.log('Dentist ID:', dentistId);
       
-      // Split the update into multiple requests to handle different parts separately
-      // This is more likely to work since dentists might only have permission to update
-      // certain fields of their profile
-      
-      // Step 1: Update the expertise (which has a separate API endpoint)
+      // Combine all updates into a single request for better consistency
       try {
-        if (JSON.stringify(formData.area_expertise) !== JSON.stringify(originalData?.area_expertise)) {
-          console.log('Updating expertise...');
+        // Create a complete update data object with all fields
+        const updateData = {
+          year_experience: formData.year_experience,
+          StartingPrice: formData.StartingPrice,
+          picture: formData.picture,
+          area_expertise: formData.area_expertise,
+          bio: bio // Add bio if backend supports it
+        };
+        
+        console.log('Updating dentist profile with data:', updateData);
+        
+        // Try updating everything at once first
+        const result = await updateDentist(dentistId, session.user.token, updateData);
+        console.log('Profile update result:', result);
+        
+        // If that fails specifically for expertise, try the specialized expertise update
+        if (!result.success && JSON.stringify(formData.area_expertise) !== JSON.stringify(originalData?.area_expertise)) {
+          console.log('Falling back to expertise-specific update...');
           const expertiseResult = await addDentistExpertise(
             dentistId, 
             session.user.token, 
@@ -214,22 +226,10 @@ export default function EditDentistProfilePage() {
           console.log('Expertise update result:', expertiseResult);
         }
         
-        // Step 2: Update other fields using the standard update endpoint
-        const basicUpdateData = {
-          year_experience: formData.year_experience,
-          StartingPrice: formData.StartingPrice,
-          picture: formData.picture,
-          bio: bio, // Add bio if backend supports it
-        };
-        
-        console.log('Updating basic information...');
-        const result = await updateDentist(dentistId, session.user.token, basicUpdateData);
-        console.log('Basic info update result:', result);
-        
         // Consider success if we got this far without errors
         setSuccess('Profile updated successfully!');
         setTimeout(() => {
-          // Force a page refresh when navigating back to ensure new data is loaded
+          // Force a complete page reload when navigating back
           window.location.href = '/dentist/profile';
         }, 2000);
       } catch (updateError: any) {
@@ -298,11 +298,11 @@ export default function EditDentistProfilePage() {
             </div>
             <div>
               <h2 className="text-xl font-bold">{formData.name}</h2>
-              <p className="text-gray-600">{formData.name}</p>
+              <p className="text-gray-600">@{formData.name}</p>
             </div>
             <div className="ml-auto">
               <button 
-                className="bg-[#4AA3BA] hover:bg-[#3b8294] text-white px-4 py-2 rounded-md font-medium transition-colors"
+                className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md transition-colors"
                 onClick={() => document.getElementById('pictureUrl')?.focus()}
               >
                 Change Photo
