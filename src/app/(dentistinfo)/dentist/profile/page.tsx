@@ -155,7 +155,6 @@ export default function DentistProfilePage() {
               </div>
             </div>
           </div>
-          
           {/* Profile Info */}
           <div className="pt-20 px-8 pb-6">
             <h1 className="text-2xl font-bold text-gray-900">Dr. {dentistData.name}</h1>
