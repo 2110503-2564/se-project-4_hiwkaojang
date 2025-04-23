@@ -231,7 +231,7 @@ export default function BookingHistoryCatalog({
         return "bg-blue-100 text-blue-800";
       case "completed":
         return "bg-green-100 text-green-800";
-      case "canceled":
+      case "cancelled":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -743,7 +743,7 @@ export default function BookingHistoryCatalog({
                 <option value="all">All Statuses</option>
                 <option value="upcoming">Upcoming</option>
                 <option value="completed">Completed</option>
-                <option value="canceled">Canceled</option>
+                <option value="cancelled">Cancelled</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                 <svg

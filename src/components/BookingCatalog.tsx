@@ -74,12 +74,12 @@ export default function BookingCatalog({
     try {
       await cancelBooking(bookingId, session.user.token);
       
-      // Update the local state to remove the canceled booking from the display
+      // Update the local state to remove the cancelled booking from the display
       setBookingJsonReady({
         ...bookingJsonReady,
         data: bookingJsonReady.data.map(booking => 
           booking._id === bookingId 
-            ? { ...booking, status: "canceled" }  // Change status to canceled
+            ? { ...booking, status: "cancelled" }  // Change status to cancelled
             : booking
         )
       });
