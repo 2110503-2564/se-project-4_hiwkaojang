@@ -117,7 +117,7 @@ export default function AppointmentCatalog({
                   Treatment History
                 </Link>
                 <Link
-                  href={`/complete/${bookingItem._id}`}
+                  href={`/appointment/${bookingItem._id}`}
                   className="bg-white text-[#4AA3BA] px-4 py-2 rounded-full border-2 font-xs hover:bg-[#3b8294] hover:text-white transition duration-300 text-sm whitespace-nowrap"
                 >
                   Complete appointment
