@@ -137,7 +137,7 @@ export default function DentistProfilePage() {
             {/* Edit Profile Button */}
             <div className="absolute top-4 right-4">
               <Link href="/dentist/profile/edit">
-                <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                <button className="bg-[#4AA3BA] hover:bg-[#3b8294] text-white px-6 py-2 rounded-md font-medium transition-colors">
                   Edit profile
                 </button>
               </Link>
