@@ -103,23 +103,32 @@ export default function TopMenu() {
           <Link href="/" className="text-black hover:text-gray-600 font-semibold text-lg">
             Home
           </Link>
+
+          {userRole ==='dentist' && 
+          <Link href="/schedule" className="text-black hover:text-gray-600 font-semibold text-lg">
+            Schedule
+          </Link>}
+
+          {userRole !=='dentist' && 
           <Link href="/booking" className="text-black hover:text-gray-600 font-semibold text-lg">
             Bookings
-          </Link>
+          </Link>}
+
+          {userRole ==='dentist' && 
+          <Link href="/appointments" className="text-black hover:text-gray-600 font-semibold text-lg">
+            Appointments
+          </Link>}
+
+          {userRole !=='dentist' && 
           <Link href="/bookingHistory" className="text-black hover:text-gray-600 font-semibold text-lg">
             Booking History
-          </Link>
+          </Link>}
+          
           <Link href="/dentist" className="text-black hover:text-gray-600 font-semibold text-lg">
             Dentists
           </Link>
           
-          {userRole === 'dentist' && (
-            <Link href="/dentist/profile" className="text-black hover:text-gray-600 font-semibold text-lg">
-              My Profile
-            </Link>
-          )}
-          
-          {session?.user?.token && (
+          {session?.user?.token &&  (
             <a 
               href="/manage" 
               onClick={handleManageClick}
@@ -147,6 +156,15 @@ export default function TopMenu() {
             </Link>
           )}
         </div>
+        
+        {userRole === 'dentist' && (
+            <Link href="/dentist/profile" >
+              <svg xmlns="http://www.w3.org/2000/svg" height="40" viewBox="0 0 24 24" width="40">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-.99 1.97-1.69 6-1.69 4.03 0 5.97.7 6 1.69-1.29 1.94-3.5 3.22-6 3.22z"/>
+              </svg>
+            </Link>
+          )}
+
       </div>
     </div>
   );
