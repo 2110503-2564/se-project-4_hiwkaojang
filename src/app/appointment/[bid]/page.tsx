@@ -61,8 +61,8 @@ export default function CompleteAppointment({ params }: { params: { bid: string 
       
       // Redirect to appointments list after a short delay
       setTimeout(() => {
-        router.push("/dentist/appointments");
-      }, 2000);
+        router.push("/appointment");
+      });
     } catch (err) {
       setError("Failed to complete appointment. Please try again.");
     } finally {
