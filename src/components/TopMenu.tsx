@@ -115,7 +115,7 @@ export default function TopMenu() {
           </Link>}
 
           {userRole ==='dentist' && 
-          <Link href="/appointments" className="text-black hover:text-gray-600 font-semibold text-lg">
+          <Link href="/appointment" className="text-black hover:text-gray-600 font-semibold text-lg">
             Appointments
           </Link>}
 
