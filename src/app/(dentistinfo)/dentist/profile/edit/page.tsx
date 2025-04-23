@@ -12,17 +12,14 @@ import addDentistExpertise from '@/libs/addDentistExpertise';
 import { 
   CircularProgress, 
   TextField, 
-  Button, 
-  FormControl, 
-  InputLabel, 
-  Select,
-  SelectChangeEvent,
-  MenuItem, 
-  Chip, 
-  Box, 
+  Button,
   Snackbar, 
-  Alert, 
-  InputAdornment 
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  SelectChangeEvent,
 } from '@mui/material';
 
 interface DentistData {
@@ -65,6 +62,18 @@ export default function EditDentistProfilePage() {
     picture: ''
   });
 
+  // Selected expertise for display
+  const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
+  // Available options to select from (excluding already selected ones)
+  const [availableExpertise, setAvailableExpertise] = useState<string[]>(expertiseOptions);
+  // Currently selected option in dropdown
+  const [currentExpertiseSelection, setCurrentExpertiseSelection] = useState<string>('');
+
+  // Bio field
+  const [bio, setBio] = useState<string>('');
+  const [bioCharCount, setBioCharCount] = useState<number>(0);
+  const MAX_BIO_LENGTH = 150;
+
   // Original data for comparison to detect changes
   const [originalData, setOriginalData] = useState<Partial<DentistData> | null>(null);
 
@@ -92,15 +101,19 @@ export default function EditDentistProfilePage() {
         const dentistResponse = await getDentist(userProfile.data.dentist_id);
         if (dentistResponse.sucess && dentistResponse.data) {
           const dentistData = dentistResponse.data;
+          const expertise = Array.isArray(dentistData.area_expertise) 
+            ? dentistData.area_expertise 
+            : [dentistData.area_expertise];
+          
           setFormData({
             name: dentistData.name,
-            area_expertise: Array.isArray(dentistData.area_expertise) 
-              ? dentistData.area_expertise 
-              : [dentistData.area_expertise],
+            area_expertise: expertise,
             year_experience: dentistData.year_experience,
             StartingPrice: dentistData.StartingPrice,
             picture: dentistData.picture
           });
+          setSelectedExpertise(expertise);
+          setAvailableExpertise(expertiseOptions.filter(exp => !expertise.includes(exp)));
           setOriginalData(dentistData);
         } else {
           setError('Failed to load dentist profile');
@@ -116,6 +129,14 @@ export default function EditDentistProfilePage() {
     fetchDentistProfile();
   }, [session, router]);
 
+  const handleBioChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    if (value.length <= MAX_BIO_LENGTH) {
+      setBio(value);
+      setBioCharCount(value.length);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
     if (name) {
@@ -123,14 +144,25 @@ export default function EditDentistProfilePage() {
     }
   };
 
-  const handleExpertiseChange = (event: SelectChangeEvent<string[]>) => {
-    const {
-      target: { value },
-    } = event;
-    setFormData({
-      ...formData,
-      area_expertise: typeof value === 'string' ? value.split(',') : value,
-    });
+  const handleExpertiseSelection = (event: SelectChangeEvent<string>) => {
+    setCurrentExpertiseSelection(event.target.value as string);
+  };
+
+  const addExpertise = () => {
+    if (currentExpertiseSelection && !selectedExpertise.includes(currentExpertiseSelection)) {
+      const updatedSelected = [...selectedExpertise, currentExpertiseSelection];
+      setSelectedExpertise(updatedSelected);
+      setFormData({ ...formData, area_expertise: updatedSelected });
+      setAvailableExpertise(expertiseOptions.filter(exp => !updatedSelected.includes(exp)));
+      setCurrentExpertiseSelection('');
+    }
+  };
+
+  const removeExpertise = (expertiseToRemove: string) => {
+    const updatedSelected = selectedExpertise.filter(exp => exp !== expertiseToRemove);
+    setSelectedExpertise(updatedSelected);
+    setFormData({ ...formData, area_expertise: updatedSelected });
+    setAvailableExpertise([...availableExpertise, expertiseToRemove].sort());
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -186,7 +218,8 @@ export default function EditDentistProfilePage() {
         const basicUpdateData = {
           year_experience: formData.year_experience,
           StartingPrice: formData.StartingPrice,
-          picture: formData.picture
+          picture: formData.picture,
+          bio: bio, // Add bio if backend supports it
         };
         
         console.log('Updating basic information...');
@@ -248,140 +281,175 @@ export default function EditDentistProfilePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="w-full bg-gray-100 py-12 text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Edit My Profile</h1>
-        <div className="mt-2 text-sm text-gray-600">
-          <Link href="/" className="hover:text-blue-600">Home </Link> /
-          <Link href="/dentist/profile" className="hover:text-blue-600"> My Profile </Link> /
-          <span className="text-gray-900"> Edit</span>
-        </div>
-      </div>
-
-      {/* Edit Form */}
-      <div className="max-w-3xl mx-auto my-12 bg-white rounded-xl shadow-md p-8">
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-8">
-            {/* Profile Image Preview */}
-            <div className="flex flex-col items-center mb-8">
-              <div className="relative w-40 h-40 mb-4">
-                <Image
-                  src={formData.picture || '/img/placeholder-dentist.jpg'}
-                  alt="Profile picture"
-                  fill
-                  className="rounded-full object-cover"
-                />
-              </div>
-              
-              <TextField
-                label="Profile Image URL"
-                variant="outlined"
-                fullWidth
-                name="picture"
-                value={formData.picture || ''}
-                onChange={handleInputChange}
-                margin="normal"
+    <main className="min-h-screen bg-gray-50 py-10">
+      <div className="max-w-3xl mx-auto px-4">
+        <h1 className="text-3xl font-bold mb-8">Edit Profile</h1>
+        
+        {/* Profile Photo Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center">
+            <div className="relative w-24 h-24 rounded-full overflow-hidden mr-6">
+              <Image
+                src={formData.picture || '/img/placeholder-dentist.jpg'}
+                alt="Profile picture"
+                fill
+                className="object-cover"
               />
             </div>
-
-            {/* Name - Read Only */}
-            <TextField
-              label="Name"
-              variant="outlined"
-              fullWidth
-              name="name"
-              value={formData.name || ''}
-              disabled
-              InputProps={{
-                readOnly: true,
-              }}
-              helperText="Name cannot be changed. Please contact an administrator for name changes."
-            />
-
-            {/* Years of Experience */}
-            <TextField
-              label="Years of Experience"
-              variant="outlined"
-              fullWidth
-              type="number"
-              name="year_experience"
-              value={formData.year_experience || 0}
-              onChange={handleInputChange}
-              InputProps={{
-                inputProps: { min: 0 }
-              }}
-            />
-
-            {/* Starting Price */}
-            <TextField
-              label="Starting Price"
-              variant="outlined"
-              fullWidth
-              type="number"
-              name="StartingPrice"
-              value={formData.StartingPrice || 0}
-              onChange={handleInputChange}
-              InputProps={{
-                inputProps: { min: 0 },
-                startAdornment: <InputAdornment position="start">฿</InputAdornment>,
-              }}
-            />
-
-            {/* Areas of Expertise */}
-            <FormControl fullWidth variant="outlined">
-              <InputLabel id="expertise-label">Areas of Expertise</InputLabel>
-              <Select
-                labelId="expertise-label"
-                multiple
-                name="area_expertise"
-                value={formData.area_expertise || []}
-                onChange={handleExpertiseChange}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(selected as string[]).map((value) => (
-                      <Chip key={value} label={value} />
-                    ))}
-                  </Box>
-                )}
-                label="Areas of Expertise"
+            <div>
+              <h2 className="text-xl font-bold">Dr. {formData.name}</h2>
+              <p className="text-gray-600">@Dr. {formData.name}</p>
+            </div>
+            <div className="ml-auto">
+              <button 
+                className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md transition-colors"
+                onClick={() => document.getElementById('pictureUrl')?.focus()}
               >
-                {expertiseOptions.map((expertise) => (
-                  <MenuItem key={expertise} value={expertise}>
-                    {expertise}
-                  </MenuItem>
+                Change Photo
+              </button>
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <TextField
+              id="pictureUrl"
+              label="Profile Image URL"
+              variant="outlined"
+              fullWidth
+              name="picture"
+              value={formData.picture || ''}
+              onChange={handleInputChange}
+              size="small"
+              className="mt-2"
+            />
+          </div>
+        </div>
+        
+        {/* Area of Expertise Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4">Area of expertise</h2>
+          
+          <div className="flex flex-wrap gap-2 mb-4">
+            {selectedExpertise.map((expertise) => (
+              <div key={expertise} className="bg-gray-100 rounded-full px-3 py-1 flex items-center">
+                <span className="text-gray-800">{expertise}</span>
+                <button 
+                  onClick={() => removeExpertise(expertise)}
+                  className="ml-2 text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex gap-2">
+            <FormControl variant="outlined" size="small" fullWidth>
+              <InputLabel id="expertise-select-label">Select Expertise</InputLabel>
+              <Select
+                labelId="expertise-select-label"
+                id="expertise-select"
+                value={currentExpertiseSelection}
+                onChange={handleExpertiseSelection}
+                label="Select Expertise"
+              >
+                <MenuItem value="" disabled><em>Select an option</em></MenuItem>
+                {availableExpertise.map((option) => (
+                  <MenuItem key={option} value={option}>{option}</MenuItem>
                 ))}
               </Select>
-              <p className="text-xs text-gray-500 mt-1">Select at least one area of expertise</p>
             </FormControl>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex justify-between mt-10">
-            <Button
-              variant="outlined"
-              color="inherit"
-              onClick={() => router.push('/dentist/profile')}
-              className="px-6"
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={!hasChanges() || saving || !(formData.area_expertise?.length)}
-              sx={{
-                backgroundColor: '#4AA3BA',
-                '&:hover': {
-                  backgroundColor: '#3b8294',
-                },
+            <Button 
+              variant="contained" 
+              onClick={addExpertise}
+              disabled={!currentExpertiseSelection}
+              style={{ 
+                backgroundColor: '#4AA3BA', 
+                minWidth: '80px',
+                height: '40px'
               }}
-              className="px-6"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              Add
             </Button>
           </div>
-        </form>
+        </div>
+        
+        {/* Years of Experience Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4">Years of experience</h2>
+          <FormControl fullWidth>
+            <TextField
+              select
+              label="Years of experience"
+              value={formData.year_experience || 0}
+              onChange={(e) => setFormData({...formData, year_experience: Number(e.target.value)})}
+              variant="outlined"
+              fullWidth
+            >
+              {Array.from({ length: 51 }, (_, i) => i).map((year) => (
+                <MenuItem key={year} value={year}>
+                  {year}
+                </MenuItem>
+              ))}
+            </TextField>
+          </FormControl>
+        </div>
+        
+        {/* Starting Price Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4">Starting price</h2>
+          <TextField
+            label="Starting price (฿)"
+            type="number"
+            variant="outlined"
+            fullWidth
+            name="StartingPrice"
+            value={formData.StartingPrice || 0}
+            onChange={(e) => setFormData({...formData, StartingPrice: Number(e.target.value)})}
+            InputProps={{
+              inputProps: { min: 0, step: 100 }
+            }}
+          />
+        </div>
+        
+        {/* Bio Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4">Bio</h2>
+          <TextField
+            multiline
+            rows={4}
+            variant="outlined"
+            fullWidth
+            value={bio}
+            onChange={handleBioChange}
+            placeholder="Write something about yourself..."
+            InputProps={{
+              endAdornment: (
+                <div className="absolute bottom-2 right-3 text-gray-400 text-sm">
+                  {bioCharCount}/{MAX_BIO_LENGTH}
+                </div>
+              ),
+            }}
+          />
+        </div>
+        
+        {/* Submit Button */}
+        <div className="flex justify-end mt-8">
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={!hasChanges() || saving}
+            onClick={handleSubmit}
+            style={{ 
+              backgroundColor: hasChanges() && !saving ? '#4AA3BA' : '#9CA3AF',
+              color: 'white',
+              padding: '10px 24px',
+              borderRadius: '6px'
+            }}
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
       {/* Success message */}
