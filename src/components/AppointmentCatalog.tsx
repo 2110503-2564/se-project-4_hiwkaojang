@@ -111,7 +111,7 @@ export default function AppointmentCatalog({
               {/* Buttons */}
               <div className="flex-shrink-0 px-4 flex gap-2">
                 <Link
-                  href={`/patient/${session.user._id}`}
+                  href={`/appointment/patient/${session.user._id}`}
                   className="bg-[#4AA3BA] text-white px-4 py-2 rounded-full font-xs hover:bg-[#3b8294] transition duration-300 text-sm whitespace-nowrap"
                 >
                   Treatment History
