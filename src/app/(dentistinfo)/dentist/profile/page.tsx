@@ -157,7 +157,7 @@ export default function DentistProfilePage() {
           </div>
           {/* Profile Info */}
           <div className="pt-20 px-8 pb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Dr. {dentistData.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{dentistData.name}</h1>
             
             {/* Location */}
             <div className="flex items-center mt-2 text-gray-600">
@@ -172,7 +172,7 @@ export default function DentistProfilePage() {
             <div className="mt-3">
               <div className="flex items-center text-gray-700">
                 <span className="font-bold mr-2">@</span> 
-                <span>Dr. {dentistData.name}</span>
+                <span>{dentistData.name}</span>
               </div>
             </div>
             
