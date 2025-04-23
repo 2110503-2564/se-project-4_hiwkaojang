@@ -47,3 +47,12 @@ interface UserJson {
   count: number;
   data: UserItem[];
 }
+
+interface DentistData {
+  _id: string;
+  name: string;
+  area_expertise: string[];
+  year_experience: number;
+  StartingPrice: number;
+  picture: string;
+}
