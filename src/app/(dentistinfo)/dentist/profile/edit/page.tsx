@@ -297,8 +297,8 @@ export default function EditDentistProfilePage() {
               />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Dr. {formData.name}</h2>
-              <p className="text-gray-600">@Dr. {formData.name}</p>
+              <h2 className="text-xl font-bold">{formData.name}</h2>
+              <p className="text-gray-600">{formData.name}</p>
             </div>
             <div className="ml-auto">
               <button 
