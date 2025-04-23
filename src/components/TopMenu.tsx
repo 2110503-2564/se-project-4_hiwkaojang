@@ -99,36 +99,36 @@ export default function TopMenu() {
           </Link>
         </div>
 
-        <div className="flex flex-row items-center space-x-24">
+        <div className="flex flex-row items-center space-x-8 md:space-x-24">
           <Link href="/" className="text-black hover:text-gray-600 font-semibold text-lg">
             Home
           </Link>
 
-          {userRole ==='dentist' && 
-          <Link href="/schedule" className="text-black hover:text-gray-600 font-semibold text-lg">
-            Schedule
-          </Link>}
-
-          {userRole !=='dentist' && 
-          <Link href="/booking" className="text-black hover:text-gray-600 font-semibold text-lg">
-            Bookings
-          </Link>}
-
-          {userRole ==='dentist' && 
-          <Link href="/appointment" className="text-black hover:text-gray-600 font-semibold text-lg">
-            Appointments
-          </Link>}
-
-          {userRole !=='dentist' && 
-          <Link href="/bookingHistory" className="text-black hover:text-gray-600 font-semibold text-lg">
-            Booking History
-          </Link>}
+          {userRole === 'dentist' ? (
+            <>
+              <Link href="/schedule" className="text-black hover:text-gray-600 font-semibold text-lg">
+                Schedule
+              </Link>
+              <Link href="/appointment" className="text-black hover:text-gray-600 font-semibold text-lg">
+                Appointments
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/booking" className="text-black hover:text-gray-600 font-semibold text-lg">
+                Bookings
+              </Link>
+              <Link href="/bookingHistory" className="text-black hover:text-gray-600 font-semibold text-lg">
+                Booking History
+              </Link>
+            </>
+          )}
           
           <Link href="/dentist" className="text-black hover:text-gray-600 font-semibold text-lg">
             Dentists
           </Link>
           
-          {session?.user?.token &&  (
+          {session?.user?.token && (
             <a 
               href="/manage" 
               onClick={handleManageClick}
@@ -139,32 +139,34 @@ export default function TopMenu() {
           )}
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-center space-x-5">
           {session ? (
             <button
               onClick={handleSignOut}
-              className="font-semibold text-lg rounded-full"
+              className="font-semibold text-lg text-black hover:text-gray-600"
             >
               Sign Out
             </button>
           ) : (
             <Link
               href="/signin"
-              className="font-semibold text-lg rounded-full"
+              className="font-semibold text-lg text-black hover:text-gray-600"
             >
               Sign In
             </Link>
           )}
-        </div>
-        
-        {userRole === 'dentist' && (
-            <Link href="/dentist/profile" >
-              <svg xmlns="http://www.w3.org/2000/svg" height="40" viewBox="0 0 24 24" width="40">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-.99 1.97-1.69 6-1.69 4.03 0 5.97.7 6 1.69-1.29 1.94-3.5 3.22-6 3.22z"/>
+
+          {userRole === 'dentist' && (
+            <Link 
+              href="/dentist/profile" 
+              className="flex items-center justify-center w-10 h-10 bg-[#4AA3BA] rounded-full hover:bg-[#3b8294] transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </Link>
           )}
-
+        </div>
       </div>
     </div>
   );
