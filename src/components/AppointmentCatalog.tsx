@@ -111,8 +111,14 @@ export default function AppointmentCatalog({
               {/* Buttons */}
               <div className="flex-shrink-0 px-4 flex gap-2">
                 <Link
+                  href={`/patient/${session.user._id}`}
+                  className="bg-[#4AA3BA] text-white px-4 py-2 rounded-full font-xs hover:bg-[#3b8294] transition duration-300 text-sm whitespace-nowrap"
+                >
+                  Treatment History
+                </Link>
+                <Link
                   href={`/complete/${bookingItem._id}`}
-                  className="bg-[#4AA3BA] text-white px-4 py-2 rounded-full font-medium hover:bg-[#3b8294] transition duration-300 text-sm whitespace-nowrap"
+                  className="bg-white text-[#4AA3BA] px-4 py-2 rounded-full border-2 font-xs hover:bg-[#3b8294] hover:text-white transition duration-300 text-sm whitespace-nowrap"
                 >
                   Complete appointment
                 </Link>
