@@ -2,6 +2,7 @@ export default async function updateDentist(id: string, token: string, updateDat
   try {
     console.log('Updating dentist with ID:', id);
     console.log('Update data:', updateData);
+    console.log('Bio field being sent:', updateData.bio);
     
     const timestamp = new Date().getTime();
     

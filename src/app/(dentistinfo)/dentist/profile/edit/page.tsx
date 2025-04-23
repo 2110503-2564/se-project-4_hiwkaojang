@@ -50,7 +50,8 @@ export default function EditDentistProfilePage() {
     area_expertise: [],
     year_experience: 0,
     StartingPrice: 0,
-    picture: ''
+    picture: '',
+    bio: ''
   });
 
   const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
@@ -60,6 +61,23 @@ export default function EditDentistProfilePage() {
   const MAX_BIO_LENGTH = 150;
 
   const [originalData, setOriginalData] = useState<Partial<DentistData> | null>(null);
+
+  useEffect(() => {
+    const handleExpertiseTagsChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{id: string, tags: string[]}>;
+      if (customEvent.detail && customEvent.detail.id === 'dentist-expertise-selector') {
+        const newTags = customEvent.detail.tags;
+        setSelectedExpertise(newTags);
+        setFormData(prev => ({ ...prev, area_expertise: newTags }));
+      }
+    };
+
+    window.addEventListener('expertise-tags-changed', handleExpertiseTagsChange);
+    
+    return () => {
+      window.removeEventListener('expertise-tags-changed', handleExpertiseTagsChange);
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchDentistProfile() {
@@ -95,8 +113,15 @@ export default function EditDentistProfilePage() {
             area_expertise: expertise,
             year_experience: dentistData.year_experience,
             StartingPrice: dentistData.StartingPrice,
-            picture: dentistData.picture
+            picture: dentistData.picture,
+            bio: dentistData.bio || ''
           });
+          
+          if (dentistData.bio) {
+            setBio(dentistData.bio);
+            setBioCharCount(dentistData.bio.length);
+          }
+          
           setOriginalData(dentistData);
         } else {
           setError('Failed to load dentist profile');
@@ -138,7 +163,7 @@ export default function EditDentistProfilePage() {
     try {
       setSaving(true);
       
-      // Validate form
+      // Validate form data
       if (!formData.area_expertise || formData.area_expertise.length === 0) {
         setError('Please select at least one area of expertise');
         setSaving(false);
@@ -166,10 +191,11 @@ export default function EditDentistProfilePage() {
           StartingPrice: formData.StartingPrice,
           picture: formData.picture,
           area_expertise: formData.area_expertise,
-          bio: bio
+          bio: bio // Add bio
         };
         
         console.log('Updating dentist profile with data:', updateData);
+        console.log('Bio content to be saved:', bio);
         
         const result = await updateDentist(dentistId, session.user.token, updateData);
         console.log('Profile update result:', result);
@@ -232,7 +258,8 @@ export default function EditDentistProfilePage() {
       formData.year_experience !== originalData.year_experience ||
       formData.StartingPrice !== originalData.StartingPrice ||
       formData.picture !== originalData.picture ||
-      JSON.stringify(formData.area_expertise) !== JSON.stringify(originalData.area_expertise)
+      JSON.stringify(formData.area_expertise) !== JSON.stringify(originalData.area_expertise) ||
+      bio !== (originalData.bio || '') 
     );
   };
 
@@ -254,7 +281,7 @@ export default function EditDentistProfilePage() {
             </div>
             <div>
               <h2 className="text-xl font-bold">{formData.name}</h2>
-              <p className="text-gray-600">@ {formData.name}</p>
+              <p className="text-gray-600">@{formData.name}</p>
             </div>
             <div className="ml-auto">
               <button 
@@ -286,11 +313,8 @@ export default function EditDentistProfilePage() {
           <h2 className="text-xl font-bold mb-4">Area of expertise</h2>
           
           <ExpertiseTagSelector
+            id="dentist-expertise-selector"
             selectedTags={selectedExpertise}
-            onChange={(tags) => {
-              setSelectedExpertise(tags);
-              setFormData({ ...formData, area_expertise: tags });
-            }}
             buttonColor="#3b82f6"
             buttonHoverColor="#2563eb"
           />

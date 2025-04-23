@@ -55,4 +55,6 @@ interface DentistData {
   year_experience: number;
   StartingPrice: number;
   picture: string;
+  rating: any[];
+  bio?: string;
 }

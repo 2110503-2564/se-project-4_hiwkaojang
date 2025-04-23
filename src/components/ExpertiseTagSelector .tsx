@@ -12,8 +12,7 @@ import {
 
 interface ExpertiseTagSelectorProps {
   selectedTags: string[];
-  onChange: (tags: string[]) => void;
-  availableOptions?: string[];
+  id: string;
   buttonColor?: string;
   buttonHoverColor?: string;
   maxSelections?: number;
@@ -33,47 +32,65 @@ const DEFAULT_EXPERTISE_OPTIONS = [
 
 export default function ExpertiseTagSelector({
   selectedTags,
-  onChange,
-  availableOptions = DEFAULT_EXPERTISE_OPTIONS,
+  id,
   buttonColor = '#3b82f6',
   buttonHoverColor = '#2563eb',
-  maxSelections = 0, 
+  maxSelections = 0,
 }: ExpertiseTagSelectorProps) {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [currentSelection, setCurrentSelection] = useState<string>('');
+  const [tags, setTags] = useState<string[]>(selectedTags);
 
   useEffect(() => {
-    setAvailableTags(availableOptions.filter(option => !selectedTags.includes(option)));
-  }, [selectedTags, availableOptions]);
+    setAvailableTags(DEFAULT_EXPERTISE_OPTIONS.filter(option => !tags.includes(option)));
+  }, [tags]);
+
+  useEffect(() => {
+    setTags(selectedTags);
+  }, [selectedTags]);
 
   const handleSelectionChange = (event: SelectChangeEvent<string>) => {
     setCurrentSelection(event.target.value as string);
   };
 
   const addTag = () => {
-    if (currentSelection && !selectedTags.includes(currentSelection)) {
-      if (maxSelections > 0 && selectedTags.length >= maxSelections) {
-        return; 
+    if (currentSelection && !tags.includes(currentSelection)) {
+      if (maxSelections > 0 && tags.length >= maxSelections) {
+        return;
       }
       
-      const updatedTags = [...selectedTags, currentSelection];
-      onChange(updatedTags);
+      const updatedTags = [...tags, currentSelection];
+      setTags(updatedTags);
+      const event = new CustomEvent('expertise-tags-changed', {
+        detail: {
+          id,
+          tags: updatedTags
+        }
+      });
+      window.dispatchEvent(event);
       setCurrentSelection('');
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    const updatedTags = selectedTags.filter(tag => tag !== tagToRemove);
-    onChange(updatedTags);
+    const updatedTags = tags.filter(tag => tag !== tagToRemove);
+    setTags(updatedTags);
+    const event = new CustomEvent('expertise-tags-changed', {
+      detail: {
+        id,
+        tags: updatedTags
+      }
+    });
+    window.dispatchEvent(event);
   };
 
-  const isAddDisabled = !currentSelection || (maxSelections > 0 && selectedTags.length >= maxSelections);
+  const isAddDisabled = !currentSelection || (maxSelections > 0 && tags.length >= maxSelections);
 
   return (
-    <div>
+    <div data-expertise-selector-id={id}>
       {/* Display selected tags */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {selectedTags.map((tag) => (
+        {tags.map((tag) => (
           <div key={tag} className="bg-gray-100 rounded-full px-3 py-1 flex items-center">
             <span className="text-gray-800">{tag}</span>
             <button 
@@ -90,14 +107,14 @@ export default function ExpertiseTagSelector({
       {/* Selection controls */}
       <div className="flex gap-2">
         <FormControl variant="outlined" size="small" fullWidth>
-          <InputLabel id="expertise-select-label">Select Expertise</InputLabel>
+          <InputLabel id={`expertise-select-label-${id}`}>Select Expertise</InputLabel>
           <Select
-            labelId="expertise-select-label"
-            id="expertise-select"
+            labelId={`expertise-select-label-${id}`}
+            id={`expertise-select-${id}`}
             value={currentSelection}
             onChange={handleSelectionChange}
             label="Select Expertise"
-            disabled={maxSelections > 0 && selectedTags.length >= maxSelections}
+            disabled={maxSelections > 0 && tags.length >= maxSelections}
           >
             <MenuItem value="" disabled><em>Select an option</em></MenuItem>
             {availableTags.map((option) => (
@@ -125,7 +142,7 @@ export default function ExpertiseTagSelector({
       {/* Optional limit indicator */}
       {maxSelections > 0 && (
         <div className="text-sm text-gray-500 mt-2">
-          {selectedTags.length} of {maxSelections} selected
+          {tags.length} of {maxSelections} selected
         </div>
       )}
     </div>
