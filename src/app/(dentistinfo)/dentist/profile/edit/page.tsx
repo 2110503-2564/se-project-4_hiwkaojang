@@ -9,7 +9,7 @@ import getUserProfile from '@/libs/getUserProfile';
 import getDentist from '@/libs/getDentist';
 import updateDentist from '@/libs/updateDentist';
 import addDentistExpertise from '@/libs/addDentistExpertise';
-import ExpertiseTagSelector from '@/components/ExpertiseTagSelector ';
+import ExpertiseTagSelector from '@/components/ExpertiseTagSelector';
 import { 
   CircularProgress, 
   TextField, 
