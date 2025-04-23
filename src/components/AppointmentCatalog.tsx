@@ -105,13 +105,13 @@ export default function AppointmentCatalog({
                 <div className="font-bold text-black text-lg mb-1">
                   Patient ID
                 </div>
-                <div className="text-sm">{session.user._id || "Patient"}</div>
+                <div className="text-sm">{bookingItem.user || "Patient"}</div>
               </div>
 
               {/* Buttons */}
               <div className="flex-shrink-0 px-4 flex gap-2">
                 <Link
-                  href={`/appointment/patient/${session.user._id}`}
+                  href={`/appointment/patient/${bookingItem.user}`}
                   className="bg-[#4AA3BA] text-white px-4 py-2 rounded-full font-xs hover:bg-[#3b8294] transition duration-300 text-sm whitespace-nowrap"
                 >
                   Treatment History
