@@ -832,11 +832,8 @@ export default function PatientTreatmentHistoryCatalog({
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
-      <div className="text-center font-bold text-2xl"><span>Patient Name : </span> <span className="text-center font-bold text-2xl text-[#4AA3BA]">{patientName}</span></div>
+      <div className="text-center text-3xl font-bold text-gray-900"><span>Patient Name : </span> <span className="text-center text-3xl font-bold text-[#4AA3BA]">{patientName}</span></div>
       <div className="bg-white p-4 rounded-xl shadow-md">
-        <div>
-          <p className="font-medium text-lg text-gray-800">Patient: <span className="text-[#4AA3BA]">{patientName}</span></p>
-        </div>
         <h2 className="text-lg font-bold mb-3">Filter Appointments</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
