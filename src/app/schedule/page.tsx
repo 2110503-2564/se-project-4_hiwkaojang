@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
-import createBooking from "@/libs/createBooking";
 import blockSchedule from "@/libs/blockSchedule";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -38,6 +37,9 @@ export default function Reservations() {
   const [bookedTimeSlots, setBookedTimeSlots] = useState<{
     [date: string]: string[];
   }>({});
+  const [pendingBookings, setPendingBookings] = useState<{
+    [date: string]: string[];
+  }>({});
   const [currentMonth, setCurrentMonth] = useState<string>(
     dayjs().format("MMMM YYYY")
   );
@@ -66,6 +68,14 @@ export default function Reservations() {
       }
 
       fetchDentistAvailability(didFromParams);
+      
+      const intervalId = setInterval(() => {
+        if (didFromParams) {
+          fetchDentistAvailability(didFromParams);
+        }
+      }, 10000);
+      
+      return () => clearInterval(intervalId);
     }
   }, [didFromParams]);
 
@@ -73,7 +83,9 @@ export default function Reservations() {
     try {
       setLoading(true);
 
-      const bookedResponse = await getDentistNotAvailable(dentistId);
+      const timestamp = new Date().getTime();
+      const bookedResponse = await getDentistNotAvailable(dentistId + `?_t=${timestamp}`);
+      
       if (bookedResponse.success && Array.isArray(bookedResponse.data)) {
         const timeSlotsByDate: { [date: string]: string[] } = {};
 
@@ -89,6 +101,7 @@ export default function Reservations() {
           timeSlotsByDate[formattedDate].push(formattedTime);
         });
 
+        console.log("Fetched booked time slots:", timeSlotsByDate);
         setBookedTimeSlots(timeSlotsByDate);
       }
     } catch (error) {
@@ -117,6 +130,7 @@ export default function Reservations() {
     ];
 
     const bookedTimes = bookedTimeSlots[formattedDate] || [];
+    const pendingTimes = pendingBookings[formattedDate] || [];
 
     const slotsWithAvailability = allTimeSlots.map((slot) => {
       const isBooked = bookedTimes.some((bookedTime) => {
@@ -124,16 +138,18 @@ export default function Reservations() {
         const slotStartHour = slot.start.split(":")[0];
         return bookedHour === slotStartHour;
       });
+      
+      const isPending = pendingTimes.includes(slot.start);
 
       return {
         ...slot,
-        isBooked,
+        isBooked: isBooked || isPending,
       };
     });
 
     setAvailableTimeSlots(slotsWithAvailability);
     setSelectedTimeSlot(null);
-  }, [selectedDate, bookedTimeSlots]);
+  }, [selectedDate, bookedTimeSlots, pendingBookings]);
 
   const handleBooking = async () => {
     if (!dentist || !selectedDate || !selectedTimeSlot) {
@@ -148,6 +164,36 @@ export default function Reservations() {
       return;
     }
 
+    const dateKey = selectedDate.format("YYYY-MM-DD");
+    const timeKey = selectedTimeSlot.start;
+    
+    const isPending = pendingBookings[dateKey]?.includes(timeKey);
+    if (isPending) {
+      setError("This time slot is already being processed. Please select another slot.");
+      return;
+    }
+    
+    // Check if already booked in backend
+    const isAlreadyBooked = bookedTimeSlots[dateKey]?.some(time => {
+      const bookedHour = time.split(":")[0];
+      const slotStartHour = timeKey.split(":")[0];
+      return bookedHour === slotStartHour;
+    });
+    
+    if (isAlreadyBooked) {
+      setError("This time slot is already booked. Please select another slot.");
+      // Refresh availability data to ensure UI is updated
+      fetchDentistAvailability(dentist);
+      return;
+    }
+
+    const updatedPendingBookings = { ...pendingBookings };
+    if (!updatedPendingBookings[dateKey]) {
+      updatedPendingBookings[dateKey] = [];
+    }
+    updatedPendingBookings[dateKey].push(timeKey);
+    setPendingBookings(updatedPendingBookings);
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -160,19 +206,55 @@ export default function Reservations() {
 
       const formattedDate = appointmentDate.toISOString();
       await blockSchedule(dentist, session.user.token, formattedDate);
-
-      setSuccess("Schedule edited!");
-      setSelectedDate(null);
-      setSelectedTimeSlot(null);
+      
+      const isVerified = await verifyBookingSuccess(dentist, dateKey, timeKey);
+      
+      if (isVerified) {
+        setSuccess("Booking successful!");
+        
+        setSelectedDate(null);
+        setSelectedTimeSlot(null);
+      } else {
+        console.log("Booking not found in verification, refreshing data...");
+        
+        setTimeout(() => fetchDentistAvailability(dentist), 500);
+        setTimeout(() => fetchDentistAvailability(dentist), 1500);
+        setTimeout(() => fetchDentistAvailability(dentist), 3000);
+        
+        setSuccess("Booking processed. Please wait while we update your schedule.");
+      }
     } catch (err) {
       const userProfile = await getUserProfile(session.user.token);
       if (userProfile.data.role === "banned") {
         setError("Failed to add schedule. You got banned");
       } else {
-        setError("Failed to add schedule. You already have a booking!");
+        setError("Failed to make an appointment. Please try again!");
       }
+      
+      fetchDentistAvailability(dentist);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const verifyBookingSuccess = async (dentistId: string, dateStr: string, timeSlot: string) => {
+    try {
+      const timestamp = new Date().getTime();
+      const response = await getDentistNotAvailable(dentistId + `?_t=${timestamp}`);
+      
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.some((item: any) => {
+          const bookingDate = dayjs(item.bookingDate);
+          const bookingDateStr = bookingDate.format("YYYY-MM-DD");
+          const bookingTimeStr = bookingDate.format("HH:mm");
+          
+          return bookingDateStr === dateStr && bookingTimeStr === timeSlot;
+        });
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to verify booking:", error);
+      return false;
     }
   };
 
@@ -190,6 +272,20 @@ export default function Reservations() {
     setSelectedTimeSlot(null);
   };
 
+  const isTimeSlotBooked = (dateKey: string, timeKey: string): boolean => {
+    // Check if booked in backend
+    const isBackendBooked = bookedTimeSlots[dateKey]?.some(time => {
+      const bookedHour = time.split(":")[0];
+      const slotStartHour = timeKey.split(":")[0];
+      return bookedHour === slotStartHour;
+    });
+    
+    // Check if in pending state
+    const isPendingBooked = pendingBookings[dateKey]?.includes(timeKey);
+    
+    return isBackendBooked || isPendingBooked;
+  }
+  
   const shouldDisableDate = (date: Dayjs) => {
     if (date.isBefore(dayjs(), "day")) {
       return true;

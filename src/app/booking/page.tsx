@@ -61,35 +61,64 @@ export default function Reservations() {
       fetchDentistAvailability(didFromParams);
     }
   }, [didFromParams]);
-  
-  const fetchDentistAvailability = async (dentistId: string) => {
-    try {
-      setLoading(true);
+
+const fetchDentistAvailability = async (dentistId: string) => {
+  try {
+    setLoading(true);
+    
+    const timestamp = new Date().getTime();
+    
+    const [regularResponse, blockedResponse] = await Promise.all([
+      getDentistNotAvailable(dentistId + `?_t=${timestamp}`),
       
-      const bookedResponse = await getDentistNotAvailable(dentistId);
-      if (bookedResponse.success && Array.isArray(bookedResponse.data)) {
-        const timeSlotsByDate: {[date: string]: string[]} = {};
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/bookings?status=blocked&dentistId=${dentistId}&_t=${timestamp}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.user?.token ? { "Authorization": `Bearer ${session.user.token}` } : {})
+        }
+      }).then(res => res.json()).catch(() => ({ success: false, data: [] }))
+    ]);
+    
+    const timeSlotsByDate: {[date: string]: string[]} = {};
+    
+    if (regularResponse.success && Array.isArray(regularResponse.data)) {
+      regularResponse.data.forEach((item: any) => {
+        const date = dayjs(item.bookingDate);
+        const formattedDate = date.format("YYYY-MM-DD");
+        const formattedTime = date.format("HH:mm");
         
-        bookedResponse.data.forEach((item: any) => {
-          const date = dayjs(item.bookingDate);
-          const formattedDate = date.format("YYYY-MM-DD");
-          const formattedTime = date.format("HH:mm");
-          
-          if (!timeSlotsByDate[formattedDate]) {
-            timeSlotsByDate[formattedDate] = [];
-          }
-          
-          timeSlotsByDate[formattedDate].push(formattedTime);
-        });
+        if (!timeSlotsByDate[formattedDate]) {
+          timeSlotsByDate[formattedDate] = [];
+        }
         
-        setBookedTimeSlots(timeSlotsByDate);
-      }
-    } catch (error) {
-      console.error("Failed to fetch dentist availability:", error);
-    } finally {
-      setLoading(false);
+        timeSlotsByDate[formattedDate].push(formattedTime);
+      });
     }
-  };
+    
+    if (blockedResponse.success && Array.isArray(blockedResponse.data)) {
+      blockedResponse.data.forEach((item: any) => {
+        const date = dayjs(item.bookingDate);
+        const formattedDate = date.format("YYYY-MM-DD");
+        const formattedTime = date.format("HH:mm");
+        
+        if (!timeSlotsByDate[formattedDate]) {
+          timeSlotsByDate[formattedDate] = [];
+        }
+        
+        if (!timeSlotsByDate[formattedDate].includes(formattedTime)) {
+          timeSlotsByDate[formattedDate].push(formattedTime);
+        }
+      });
+    }
+    
+    console.log("Booked and blocked time slots:", timeSlotsByDate);
+    setBookedTimeSlots(timeSlotsByDate);
+  } catch (error) {
+    console.error("Failed to fetch dentist availability:", error);
+  } finally {
+    setLoading(false);
+  }
+};
   
   useEffect(() => {
     if (!selectedDate) {

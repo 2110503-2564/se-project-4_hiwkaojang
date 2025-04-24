@@ -1,8 +1,40 @@
 export default async function getDentistNotAvailable(id: string) {
-    const response =await fetch(`${process.env.BACKEND_URL}/api/v1/dentists/availibility/${id}`)
-    if(!response.ok) {
-        throw new Error("Failed to fetch reviews dentist")
+    const timestamp = new Date().getTime();
+    
+    const regularResponse = await fetch(`${process.env.BACKEND_URL}/api/v1/dentists/availibility/${id}?_t=${timestamp}`);
+    if(!regularResponse.ok) {
+        throw new Error("Failed to fetch dentist availability");
     }
-
-    return await response.json()
+    
+    const allBookingsResponse = await fetch(`${process.env.BACKEND_URL}/api/v1/bookings?dentistId=${id}&_t=${timestamp}`, {
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem('userToken') || ''}` 
+        }
+    });
+    
+    if (!allBookingsResponse.ok) {
+        return await regularResponse.json();
+    }
+    
+    const regularData = await regularResponse.json();
+    const allBookingsData = await allBookingsResponse.json();
+    
+    if (regularData.success && allBookingsData.success) {
+        const blockedBookings = allBookingsData.data.filter((booking: any) => 
+            booking.status === "blocked"
+          );
+        
+        const combinedBookings = [
+            ...regularData.data,
+            ...blockedBookings
+        ];
+        
+        return {
+            success: true,
+            data: combinedBookings
+        };
+    }
+    
+    return regularData;
 }
