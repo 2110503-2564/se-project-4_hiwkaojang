@@ -118,7 +118,7 @@ export default function AppointmentCatalog({
                 </Link>
                 <Link
                   href={`/appointment/${bookingItem._id}`}
-                  className="bg-white text-[#4AA3BA] px-4 py-2 rounded-full border-2 font-xs hover:bg-[#3b8294] hover:text-white transition duration-300 text-sm whitespace-nowrap"
+                  className="bg-white text-[#4AA3BA] border border-[#4AA3BA] px-2 py-2 rounded-full font-medium hover:text-red-500 hover:border-red-500 transition duration-300 text-sm whitespace-nowrap"
                 >
                   Complete appointment
                 </Link>
