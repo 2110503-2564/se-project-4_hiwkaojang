@@ -11,6 +11,7 @@ interface BookingItem {
   dentist: {
     _id: string;
     name: string;
+    area_expertise: string | string[];
   };
   user: string;
   treatmentDetail: string;
@@ -18,6 +19,14 @@ interface BookingItem {
 
 interface BookingJson {
   data: BookingItem[];
+}
+
+interface UserItem {
+  _id: string;
+  name: string;
+  email: string;
+  telephone: string;
+  role: string;
 }
 
 export default function PatientTreatmentHistoryCatalog({
@@ -32,6 +41,9 @@ export default function PatientTreatmentHistoryCatalog({
   );
   const [sortOption, setSortOption] = useState<string>("newest");
   const [statusFilter, setStatusFilter] = useState<string>("completed");
+  // New state for expertise filter
+  const [expertiseFilter, setExpertiseFilter] = useState<string>("All");
+  const [expertiseOptions, setExpertiseOptions] = useState<string[]>(["All"]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
     start: "",
@@ -50,26 +62,66 @@ export default function PatientTreatmentHistoryCatalog({
   const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
 
+  const [patientName, setPatientName] = useState<string>("");
+
   useEffect(() => {
     async function fetchBookingData() {
       try {
-        const patientName = await patient;
+        const patientData = await patient;
+        if (patientData && patientData.data) {
+          if (Array.isArray(patientData.data) && patientData.data.length > 0) {
+            setPatientName(patientData.data[0].name || "Unknown");
+          } else {
+            const userData = patientData.data as UserItem;
+            setPatientName(userData.name || "Unknown");
+          }
+        }
+        
         const data = await bookingJson;
         setBookingJsonReady(data);
+        
+        const allExpertiseAreas = new Set<string>();
+        allExpertiseAreas.add("All");
+        
+        const predefinedExpertiseOptions = [
+          'Orthodontics', 
+          'Endodontics', 
+          'Prosthodontics', 
+          'Pediatric Dentistry', 
+          'Oral Surgery', 
+          'Periodontics', 
+          'Cosmetic Dentistry', 
+          'General Dentistry',
+          'Implant Dentistry'
+        ];
+        
+        predefinedExpertiseOptions.forEach(option => allExpertiseAreas.add(option));
+        
+        data.data.forEach(booking => {
+          if (booking.dentist && booking.dentist.area_expertise) {
+            if (Array.isArray(booking.dentist.area_expertise)) {
+              booking.dentist.area_expertise.forEach(area => allExpertiseAreas.add(area));
+            } else {
+              allExpertiseAreas.add(booking.dentist.area_expertise);
+            }
+          }
+        });
+        
+        setExpertiseOptions(Array.from(allExpertiseAreas));
         applyFiltersAndSort(data.data);
       } catch (error) {
         console.error("Failed to load bookings:", error);
       }
     }
     fetchBookingData();
-  }, [bookingJson]);
+  }, [bookingJson, patient]);
 
   useEffect(() => {
     if (bookingJsonReady) {
       setCurrentPage(1);
       applyFiltersAndSort(bookingJsonReady.data);
     }
-  }, [sortOption, statusFilter, searchTerm, dateRange, bookingJsonReady]);
+  }, [sortOption, statusFilter, expertiseFilter, searchTerm, dateRange, bookingJsonReady]);
 
   useEffect(() => {
     updateDisplayedBookings();
@@ -84,13 +136,28 @@ export default function PatientTreatmentHistoryCatalog({
       filtered = filtered.filter((booking) => booking.status === statusFilter);
     }
 
+    // Add filter by expertise area
+    if (expertiseFilter !== "All") {
+      filtered = filtered.filter((booking) => {
+        if (booking.dentist && booking.dentist.area_expertise) {
+          if (Array.isArray(booking.dentist.area_expertise)) {
+            return booking.dentist.area_expertise.includes(expertiseFilter);
+          } else {
+            return booking.dentist.area_expertise === expertiseFilter;
+          }
+        }
+        return false;
+      });
+    }
+
     if (dateRange.start) {
       const startDate = new Date(dateRange.start);
       filtered = filtered.filter(
         (booking) => new Date(booking.bookingDate) >= startDate
       );
     }
-   if (dateRange.end) {
+    
+    if (dateRange.end) {
       const endDate = new Date(dateRange.end);
       endDate.setHours(23, 59, 59, 999);
       filtered = filtered.filter(
@@ -134,7 +201,14 @@ export default function PatientTreatmentHistoryCatalog({
   const handleStatusFilterChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setStatusFilter("completed");
+    setStatusFilter(e.target.value);
+  };
+
+  // New handler for expertise filter change
+  const handleExpertiseFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setExpertiseFilter(e.target.value);
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -195,6 +269,7 @@ export default function PatientTreatmentHistoryCatalog({
   const resetFilters = () => {
     setSortOption("newest");
     setStatusFilter("completed");
+    setExpertiseFilter("All");
     setSearchTerm("");
     setDateRange({ start: "", end: "" });
     setCurrentPage(1);
@@ -417,6 +492,14 @@ export default function PatientTreatmentHistoryCatalog({
                     <p className="text-sm text-gray-500">Dentist Name</p>
                     <p className="font-medium">
                       {selectedBooking.dentist?.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Area of Expertise</p>
+                    <p className="font-medium">
+                      {Array.isArray(selectedBooking.dentist?.area_expertise)
+                        ? selectedBooking.dentist?.area_expertise.join(', ')
+                        : selectedBooking.dentist?.area_expertise}
                     </p>
                   </div>
                 </div>
@@ -716,8 +799,10 @@ export default function PatientTreatmentHistoryCatalog({
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
       <div className="bg-white p-4 rounded-xl shadow-md">
-        <div>patient name :</div>
-        <h2 className="text-lg font-bold mb-3">Filter Appointments</h2>
+        <div>
+          <p className="font-medium text-lg text-gray-800">Patient: <span className="text-[#4AA3BA]">{patientName}</span></p>
+        </div>
+        <h2 className="text-lg font-bold mb-3 mt-3">Filter Appointments</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label
@@ -738,22 +823,21 @@ export default function PatientTreatmentHistoryCatalog({
 
           <div>
             <label
-              htmlFor="TreatmentFilter"
+              htmlFor="expertiseFilter"
               className="block text-gray-700 text-sm font-medium mb-1"
             >
               Treatment type
             </label>
             <div className="relative">
               <select
-                id="TreatmentFilter"
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
+                id="expertiseFilter"
+                value={expertiseFilter}
+                onChange={handleExpertiseFilterChange}
                 className="w-full bg-white border border-gray-300 rounded-md py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[#4AA3BA] focus:border-[#4AA3BA] appearance-none"
               >
-                <option value="all">All Statuses</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
+                {expertiseOptions.map((expertise, index) => (
+                  <option key={index} value={expertise}>{expertise}</option>
+                ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                 <svg
