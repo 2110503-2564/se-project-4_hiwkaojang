@@ -44,7 +44,7 @@ export default async function DentistDetailPage({ params }: { params: { did: str
             
             {/* Appointment Button */}
             <Link href={`/booking?did=${params.did}`}>
-              <button className="mt-20 rounded-3xl bg-sky-500 px-3 py-2 text-white text-lg font-medium hover:bg-indigo-600 shadow-md">
+              <button className="mt-12 rounded-3xl bg-[#4AA3BA] text-white px-4 py-2 text-lg font-medium hover:bg-[#3b8294] transition-colors">
                 Make an Appointment
               </button>
             </Link>
