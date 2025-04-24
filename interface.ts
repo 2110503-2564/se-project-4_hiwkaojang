@@ -45,7 +45,7 @@ interface UserItem {
 interface UserJson {
   success: boolean;
   count: number;
-  data: UserItem[];
+  data: UserItem | UserItem[];
 }
 
 interface DentistData {

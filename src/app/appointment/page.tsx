@@ -38,6 +38,15 @@ export default async function Manage() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {profile.data.role === "dentist" &&
+          (
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold">
+                Complete <span className="text-[#4AA3BA]">Appointment</span>
+              </h2>
+            </div>
+          )
+        }
 
         {profile.data.role === "dentist" && (
           <div className="container mx-auto px-6 py-12">
