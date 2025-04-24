@@ -60,22 +60,14 @@ export default function Reservations() {
   useEffect(() => {
     if (didFromParams) {
       setDentist(didFromParams);
-
+      
       if (didFromParams in dentistNames) {
         setDentistName(dentistNames[didFromParams]);
       } else {
         setDentistName("");
       }
-
+      
       fetchDentistAvailability(didFromParams);
-      
-      const intervalId = setInterval(() => {
-        if (didFromParams) {
-          fetchDentistAvailability(didFromParams);
-        }
-      }, 10000);
-      
-      return () => clearInterval(intervalId);
     }
   }, [didFromParams]);
 
@@ -210,7 +202,7 @@ export default function Reservations() {
       const isVerified = await verifyBookingSuccess(dentist, dateKey, timeKey);
       
       if (isVerified) {
-        setSuccess("Booking successful!");
+        setSuccess("Schedule marked successfully!");
         
         setSelectedDate(null);
         setSelectedTimeSlot(null);
