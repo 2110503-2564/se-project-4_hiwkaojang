@@ -230,7 +230,7 @@ export default function CompleteAppointment({ params }: { params: { bid: string 
               )}
             </button>
             <Link
-              href="/dentist/appointments"
+              href="/appointment"
               className="w-full sm:w-auto text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-full transition-colors duration-200"
             >
               Cancel
