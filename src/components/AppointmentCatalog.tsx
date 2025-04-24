@@ -62,7 +62,7 @@ export default function AppointmentCatalog({
 
   // Filter bookings to only show "upcoming" ones
   const upcomingBookings = bookingJsonReady.data.filter(
-    (booking) => booking.status === "upcoming"
+    (booking) => booking.status === "upcoming" || booking.status === "confirmed"
   );
 
   return (

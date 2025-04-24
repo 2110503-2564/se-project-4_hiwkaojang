@@ -742,6 +742,7 @@ export default function BookingHistoryCatalog({
               >
                 <option value="all">All Statuses</option>
                 <option value="upcoming">Upcoming</option>
+                <option value="confirmed">Confirmed</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
