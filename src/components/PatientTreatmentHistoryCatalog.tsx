@@ -13,6 +13,7 @@ interface BookingItem {
     name: string;
   };
   user: string;
+  treatmentDetail: string;
 }
 
 interface BookingJson {
@@ -20,9 +21,10 @@ interface BookingJson {
 }
 
 export default function PatientTreatmentHistoryCatalog({
-  bookingJson,
+  bookingJson, patient
 }: {
-  bookingJson: Promise<BookingJson>;
+  bookingJson: Promise<BookingJson>,
+  patient: Promise<UserJson> ;
 }) {
   const { data: session } = useSession();
   const [bookingJsonReady, setBookingJsonReady] = useState<BookingJson | null>(
@@ -51,6 +53,7 @@ export default function PatientTreatmentHistoryCatalog({
   useEffect(() => {
     async function fetchBookingData() {
       try {
+        const patientName = await patient;
         const data = await bookingJson;
         setBookingJsonReady(data);
         applyFiltersAndSort(data.data);
@@ -418,6 +421,11 @@ export default function PatientTreatmentHistoryCatalog({
                   </div>
                 </div>
               </div>
+
+              <div>
+                <h3 className="text-lg font-semibold">Treatment Detail</h3>
+                <p className="text-gray-700 break-all">{selectedBooking.treatmentDetail}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -708,6 +716,7 @@ export default function PatientTreatmentHistoryCatalog({
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
       <div className="bg-white p-4 rounded-xl shadow-md">
+        <div>patient name :</div>
         <h2 className="text-lg font-bold mb-3">Filter Appointments</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
@@ -925,15 +934,6 @@ export default function PatientTreatmentHistoryCatalog({
                 >
                   View Details
                 </button>
-                <br />
-                {bookingItem.status === "completed" && (
-                  <button
-                    onClick={() => openReviewModal(bookingItem)}
-                    className="bg-[#4AA3BA] text-white px-4 py-2 rounded-md hover:bg-[#3A92A9] transition duration-300 w-full h-1/3 text-sm"
-                  >
-                    Review Dentist
-                  </button>
-                )}
               </div>
             </div>
           </div>

@@ -22,7 +22,7 @@ export default async function Manage({ params }: { params: { pid: string } }) {
   const [profile, bookingJson, userJson] = await Promise.all([
     getUserProfile(session.user.token),
     getPatientHistory(session.user.token , params.pid ),
-    getUser(session.user.token)
+    getUser(params.pid)
   ]);
 
   return (
@@ -39,7 +39,7 @@ export default async function Manage({ params }: { params: { pid: string } }) {
         {profile.data.role === "dentist" && (
           <div className="container mx-auto px-6 py-12">
             <Suspense fallback={<p className="text-center">Loading...</p>}>
-              <PatientTreatmentHistoryCatalog bookingJson={bookingJson} />
+              <PatientTreatmentHistoryCatalog bookingJson={bookingJson}  patient={userJson} />
             </Suspense>
           </div>
         )}
