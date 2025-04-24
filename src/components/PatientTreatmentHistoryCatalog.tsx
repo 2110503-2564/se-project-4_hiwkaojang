@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Rating from "@mui/material/Rating";
 import submitDentistReview from "@/libs/createReview";
 
+
 interface BookingItem {
   _id: string;
   bookingDate: string;
@@ -14,6 +15,18 @@ interface BookingItem {
   };
   user: string;
   treatmentDetail: string;
+}
+
+interface UserJson {
+  data: UserItem;
+}
+
+interface UserItem {
+  _id: string;
+  name: string;
+  email: string;
+  telephone: string;
+  role: string;
 }
 
 interface BookingJson {
@@ -49,11 +62,33 @@ export default function PatientTreatmentHistoryCatalog({
   );
   const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+  const [patientName, setPatientName] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchPatientName() {
+      try {
+        console.log(patient);
+        const userData = await patient;
+        if(userData?.data){
+          console.log("hi");
+        }else{
+          console.log("what");
+        }
+        if (userData?.data?.name) {
+          setPatientName(userData.data.name);
+        } else {
+          console.warn("Patient data or name not found.");
+        }
+      } catch (error) {
+        console.error("Failed to load patient data:", error);
+      }
+    }
+    fetchPatientName();
+  }, [patient]);
 
   useEffect(() => {
     async function fetchBookingData() {
       try {
-        const patientName = await patient;
         const data = await bookingJson;
         setBookingJsonReady(data);
         applyFiltersAndSort(data.data);
@@ -715,8 +750,8 @@ export default function PatientTreatmentHistoryCatalog({
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
+      <div className="text-center font-bold text-2xl"><span>Patient Name : </span> <span className="text-center font-bold text-2xl text-[#4AA3BA]">{patientName}</span></div>
       <div className="bg-white p-4 rounded-xl shadow-md">
-        <div>patient name :</div>
         <h2 className="text-lg font-bold mb-3">Filter Appointments</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>

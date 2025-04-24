@@ -2,7 +2,7 @@ import BookingCatalog from "@/components/BookingCatalog";
 import Link from "next/link";
 import getBookings from "@/libs/getBookings";
 import getUserProfile from "@/libs/getUserProfile";
-import getUser from "@/libs/getUsers";
+import getUser from "@/libs/getUser";
 import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
@@ -18,11 +18,12 @@ export default async function Manage({ params }: { params: { pid: string } }) {
   if (!session || !session.user.token) {
     redirect("/auth/signin");
   }
+  const uid = params.pid ;
 
   const [profile, bookingJson, userJson] = await Promise.all([
     getUserProfile(session.user.token),
     getPatientHistory(session.user.token , params.pid ),
-    getUser(params.pid)
+    getUser(session.user.token , params.pid )
   ]);
 
   return (
