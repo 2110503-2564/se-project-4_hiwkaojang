@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import createBooking from "@/libs/createBooking";
+import blockSchedule from "@/libs/blockSchedule";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
@@ -158,7 +159,7 @@ export default function Reservations() {
         .second(0);
 
       const formattedDate = appointmentDate.toISOString();
-      await createBooking(dentist, session.user.token, formattedDate);
+      await blockSchedule(dentist, session.user.token, formattedDate);
 
       setSuccess("Schedule edited!");
       setSelectedDate(null);
