@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import UserCatalog from "@/components/UserCatalog";
 import BookingHistoryCatalog from "@/components/BookingHistoryCatalog";
 import PatientTreatmentHistoryCatalog from "@/components/PatientTreatmentHistoryCatalog";
+import getPatientHistory from "@/libs/getPatientHistory";
 
 export default async function Manage({ params }: { params: { pid: string } }) {
   const session = await getServerSession(authOptions);
@@ -20,7 +21,7 @@ export default async function Manage({ params }: { params: { pid: string } }) {
 
   const [profile, bookingJson, userJson] = await Promise.all([
     getUserProfile(session.user.token),
-    getBookings(session.user.token),
+    getPatientHistory(session.user.token , params.pid ),
     getUser(session.user.token)
   ]);
 
