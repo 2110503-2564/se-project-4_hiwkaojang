@@ -10,6 +10,7 @@ export default function TopMenu() {
   const { data: session } = useSession();
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchUserRole() {
@@ -18,6 +19,7 @@ export default function TopMenu() {
           const userProfile = await getUserProfile(session.user.token);
           if (userProfile.data?.role) {
             setUserRole(userProfile.data.role);
+            setUserId(userProfile.data.dentist_id);
           }
         } catch (error) {
           console.error('Error fetching user role:', error);
@@ -106,7 +108,7 @@ export default function TopMenu() {
 
           {userRole === 'dentist' ? (
             <>
-              <Link href="/schedule" className="text-black hover:text-gray-600 font-semibold text-lg">
+              <Link href={`/schedule?did=${userId}`} className="text-black hover:text-gray-600 font-semibold text-lg">
                 Schedule
               </Link>
               <Link href="/appointment" className="text-black hover:text-gray-600 font-semibold text-lg">
