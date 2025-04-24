@@ -31,9 +31,9 @@ export default async function Manage() {
   return (
     <main className="w-full flex flex-col items-center bg-white min-h-screen">
       <div className="w-full bg-gray-100 py-12 text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Appointments</h1>
+        <h1 className="text-4xl font-bold text-gray-900">Summarize your appointments</h1>
         <div className="mt-2 text-sm text-gray-600">
-          <Link href="/" className="hover:text-blue-600">Home</Link>{" "} / <span>Manage</span>
+          <Link href="/" className="hover:text-blue-600">Home</Link>{" "} / <span>appointment</span>
         </div>
       </div>
       

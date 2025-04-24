@@ -28,7 +28,7 @@ export default async function Manage({ params }: { params: { pid: string } }) {
   return (
     <main className="w-full flex flex-col items-center bg-white min-h-screen">
       <div className="w-full bg-gray-100 py-12 text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Booking History</h1>
+        <h1 className="text-4xl font-bold text-gray-900">Patient Treatment History</h1>
         <div className="mt-2 text-sm text-gray-600">
           <Link href="/" className="hover:text-blue-600">Home</Link>{" "} / <span>Manage</span>
         </div>
