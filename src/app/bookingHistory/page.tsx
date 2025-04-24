@@ -37,7 +37,7 @@ export default async function Manage() {
         {profile.data.role === "dentist" && (
           <div className="container mx-auto px-6 py-12">
             <Suspense fallback={<p className="text-center">Loading...</p>}>
-              <BookingHistoryCatalog bookingJson={bookingJson} />
+              <BookingHistoryCatalog bookingJson={bookingJson}  role="dentist" />
             </Suspense>
           </div>
         )}
@@ -75,7 +75,7 @@ export default async function Manage() {
         {profile.data.role === "admin" &&
           (<div className="container mx-auto px-6 py-12">
             <Suspense fallback={<p className="text-center">Loading...</p>}>
-              <BookingHistoryCatalog bookingJson={bookingJson} />
+              <BookingHistoryCatalog bookingJson={bookingJson}  role="admin" />
             </Suspense>
           </div>)
         }
@@ -83,7 +83,7 @@ export default async function Manage() {
         {profile.data.role === "user" &&
           (<div className="container mx-auto px-6 py-12">
             <Suspense fallback={<p className="text-center">Loading...</p>}>
-              <BookingHistoryCatalog bookingJson={bookingJson} />
+              <BookingHistoryCatalog bookingJson={bookingJson}  role="user" />
             </Suspense>
           </div>)
         }

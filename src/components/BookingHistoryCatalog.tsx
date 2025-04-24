@@ -19,9 +19,10 @@ interface BookingJson {
 }
 
 export default function BookingHistoryCatalog({
-  bookingJson,
+  bookingJson, role
 }: {
-  bookingJson: Promise<BookingJson>;
+  bookingJson: Promise<BookingJson>,
+  role : string ;
 }) {
   const { data: session } = useSession();
   const [bookingJsonReady, setBookingJsonReady] = useState<BookingJson | null>(
@@ -229,6 +230,8 @@ export default function BookingHistoryCatalog({
     switch (status.toLowerCase()) {
       case "upcoming":
         return "bg-blue-100 text-blue-800";
+      case "confirmed":
+        return "bg-teal-100 text-teal-800";
       case "completed":
         return "bg-green-100 text-green-800";
       case "cancelled":
@@ -745,6 +748,7 @@ export default function BookingHistoryCatalog({
                 <option value="confirmed">Confirmed</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="blocked" className={`${((role === "admin")||(role === "dentist"))? "display" : "hidden" }`}>Blocked</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                 <svg
