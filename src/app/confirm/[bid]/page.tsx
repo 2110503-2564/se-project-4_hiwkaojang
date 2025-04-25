@@ -37,12 +37,28 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
         // Update the local state to show confirmed status
         setBooking((prev: any) => ({ ...prev, status: 'confirmed' }));
       } else {
-        throw new Error(result.message || 'Failed to confirm booking');
+        // If booking is already confirmed, just show success state
+        if (result.message && result.message.includes("already confirmed")) {
+          setConfirmingStatus("success");
+          setBooking((prev: any) => ({ ...prev, status: 'confirmed' }));
+        } else {
+          throw new Error(result.message || 'Failed to confirm booking');
+        }
       }
     } catch (err: any) {
       console.error('Error confirming booking:', err);
-      setConfirmingStatus("error");
-      setError(err.message || 'An error occurred while confirming your appointment');
+      
+      // If the error contains "already confirmed", treat it as a success
+      if (err.message && (
+          err.message.includes("already confirmed") || 
+          err.message.includes("Only upcoming bookings can be confirmed")
+        )) {
+        setConfirmingStatus("success");
+        setBooking((prev: any) => prev ? { ...prev, status: 'confirmed' } : prev);
+      } else {
+        setConfirmingStatus("error");
+        setError(err.message || 'An error occurred while confirming your appointment');
+      }
     }
   };
 
@@ -59,11 +75,9 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
         const data = await response.json();
         setBooking(data.data);
         
-        // Automatically trigger confirmation if the booking is in 'upcoming' status
-        if (data.data && data.data.status === 'upcoming') {
-          // Use a timeout to ensure the UI has time to render first
-          setTimeout(() => confirmAppointment(params.bid), 500);
-        } else if (data.data && data.data.status === 'confirmed') {
+        // Don't automatically trigger confirmation on initial load
+        // This prevents the race condition
+        if (data.data && data.data.status === 'confirmed') {
           setConfirmingStatus("success");
         }
         
@@ -85,7 +99,7 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4AA3BA]"></div>
           </div>
-          <p className="mt-4 text-lg text-gray-700">Loading and processing your appointment...</p>
+          <p className="mt-4 text-lg text-gray-700">Loading your appointment details...</p>
         </div>
       </div>
     );
@@ -115,7 +129,7 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
       <div className="bg-white rounded-xl shadow-xl max-w-xl w-full p-8 mx-4">
         <div className="text-center mb-8">
           <div className="w-20 h-20 mx-auto bg-[#4AA3BA] rounded-full flex items-center justify-center mb-4">
-            {confirmingStatus === "success" ? (
+            {confirmingStatus === "success" || booking?.status === 'confirmed' ? (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -128,10 +142,10 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Your Dental Appointment</h1>
           {confirmingStatus === "loading" ? (
             <p className="text-gray-600">Processing your confirmation...</p>
-          ) : confirmingStatus === "success" ? (
+          ) : confirmingStatus === "success" || booking?.status === 'confirmed' ? (
             <p className="text-green-600 font-medium">Your appointment has been confirmed!</p>
           ) : (
-            <p className="text-gray-600">Please wait while we confirm your appointment...</p>
+            <p className="text-gray-600">Please confirm your appointment below.</p>
           )}
         </div>
 
@@ -175,7 +189,7 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
           </div>
         </div>
 
-        {/* Success Message */}
+        {/* Conditional buttons based on status */}
         <div className="text-center">
           {confirmingStatus === "loading" && (
             <div className="w-full py-3 flex items-center justify-center">
@@ -186,7 +200,7 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
             </div>
           )}
           
-          {confirmingStatus === "success" && (
+          {confirmingStatus === "success" || booking?.status === 'confirmed' ? (
             <div>
               <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -199,15 +213,20 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
                 Return Home
               </Link>
             </div>
-          )}
-          
-          {confirmingStatus === "error" && (
+          ) : confirmingStatus === "error" ? (
             <div>
               <p className="mt-4 text-red-500 text-sm">{error || 'An error occurred during confirmation. Please try again or contact us.'}</p>
               <Link href="/" className="mt-4 inline-block bg-[#4AA3BA] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#3b8294] transition-colors">
                 Return Home
               </Link>
             </div>
+          ) : (
+            <button
+              onClick={() => confirmAppointment(params.bid)}
+              className="bg-[#4AA3BA] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#3b8294] transition-colors"
+            >
+              Confirm Appointment
+            </button>
           )}
         </div>
         
