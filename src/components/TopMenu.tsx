@@ -36,6 +36,11 @@ export default function TopMenu() {
     router.refresh();
   };
 
+  const handleManageClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.location.href = '/manage';
+  };
+
   return (
     <div className="fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-300">
       {/* Top contact bar */}
@@ -125,11 +130,14 @@ export default function TopMenu() {
             Dentists
           </Link>
           
-          {/* Show "Manage" link only for admin users, not for dentists */}
-          {session?.user?.token && userRole === 'admin' && (
-            <Link href="/manage" className="text-black hover:text-gray-600 font-semibold text-lg">
+          {session?.user?.token && (
+            <a 
+              href="/manage" 
+              onClick={handleManageClick}
+              className="text-black hover:text-gray-600 font-semibold text-lg cursor-pointer"
+            >
               Manage
-            </Link>
+            </a>
           )}
         </div>
 
