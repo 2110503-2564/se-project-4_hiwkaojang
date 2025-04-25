@@ -12,6 +12,7 @@ interface BookingItem {
     _id: string;
     name: string;
   };
+  user: string ;
 }
 
 interface BookingJson {
@@ -904,7 +905,7 @@ export default function BookingHistoryCatalog({
                 <div className="font-bold text-black text-lg mb-1">
                   Patient ID
                 </div>
-                <div className="text-sm">{session.user._id || "Patient"}</div>
+                <div className="text-sm">{ bookingItem.user || "Patient"}</div>
               </div>
               <div className="flex-0.5 min-w-[150px] px-4 border-r border-gray-300">
                 <div className="font-bold text-black text-lg mb-1">Status</div>
