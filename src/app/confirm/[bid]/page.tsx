@@ -50,7 +50,7 @@ export default function ConfirmAppointment({ params }: { params: { bid: string }
     const fetchBookingDetails = async () => {
       try {
         // Fetch the booking details using the bid from the URL
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/bookings/${params.bid}`);
+        const response = await fetch(`${process.env.BACKEND_URL}/api/v1/bookings/${params.bid}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch booking details');

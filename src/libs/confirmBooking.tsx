@@ -1,7 +1,7 @@
 export default async function confirmBooking(bookingId: string) {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/bookings/${bookingId}/confirm`,
+        `${process.env.BACKEND_URL}/api/v1/bookings/${bookingId}/confirm`,
         {
           method: "PUT",
           headers: {
@@ -17,7 +17,7 @@ export default async function confirmBooking(bookingId: string) {
   
       return await response.json();
     } catch (error: any) {
-      console.error("Confirmation error:", error);
+      console.error("Confirmation error At libs:", error);
       throw error;
     }
   }
