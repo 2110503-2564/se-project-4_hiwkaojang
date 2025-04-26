@@ -5,13 +5,9 @@ import { useSession } from "next-auth/react";
 import dayjs, { Dayjs } from "dayjs";
 import getBooking from "@/libs/getBooking";
 import { useRouter } from "next/navigation";
-import DentistDateReserve from "@/components/DateReserve";
 import updateBooking from "@/libs/updateBooking";
-
-import createBooking from "@/libs/createBooking";
-import { useSearchParams } from "next/navigation";
 import getUserProfile from "@/libs/getUserProfile";
-import { Select, MenuItem, TextField } from "@mui/material";
+import { Select, MenuItem } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
@@ -30,16 +26,15 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
 
   const [bookingJson, setBookingJson] = useState<any>(null);
   const [dentist, setDentist] = useState<string>("");
-  const [appointmentDate, setAppointmentDate] = useState<Dayjs | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const [dentistName, setDentistName] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(
-    null
-  );
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   const [bookedTimeSlots, setBookedTimeSlots] = useState<{
     [date: string]: string[];
   }>({});
@@ -47,6 +42,7 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
     dayjs().format("MMMM YYYY")
   );
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  const [fetchingAvailability, setFetchingAvailability] = useState<boolean>(false);
 
   const dentistNames: Record<string, string> = {
     "67fde0a05a0148bd6061706c": "Dr. John Carter",
@@ -60,49 +56,33 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
     "67fde3085a0148bd60617084": "Dr. Benjamin Cooper",
   };
 
+  // Handle authentication
   useEffect(() => {
     if (!session || !session.user?.token) {
       router.push("/auth/signin");
     }
   }, [session, router]);
 
-  useEffect(() => {
-    if (session?.user?.token) {
-      getBooking(session.user.token, params.bid)
-        .then((data) => {
-          setBookingJson(data);
-          setDentist(data.data.dentist._id || "");
-          setDentistName(data.data.dentist.name || "");
-          setAppointmentDate(dayjs(data.data.bookingDate));
-          setSelectedDate(dayjs(data.data.bookingDate));
-        })
-        .catch(() => setError("Failed to load booking data"));
-    }
-  }, [session, params.bid]);
-
-  useEffect(() => {
-    if (!bookingJson || !availableTimeSlots.length) return;
-
-    const bookingTime = dayjs(bookingJson.data.bookingDate).format("HH:mm");
-
-    const foundSlot = availableTimeSlots.find(
-      (slot) => slot.start === bookingTime
-    );
-
-    if (foundSlot) {
-      setSelectedTimeSlot(foundSlot);
-    }
-  }, [bookingJson, availableTimeSlots]);
-
-  const fetchDentistAvailability = async (dentistId: string) => {
+  // Function to fetch dentist availability
+  const fetchDentistAvailability = async (dentistId: string, currentBookingId?: string) => {
+    if (!dentistId) return;
+    
     try {
-      setLoading(true);
-
-      const bookedResponse = await getDentistNotAvailable(dentistId);
+      setFetchingAvailability(true);
+      
+      const timestamp = new Date().getTime(); // Cache busting timestamp
+      const bookedResponse = await getDentistNotAvailable(dentistId + `?_t=${timestamp}`);
+      
       if (bookedResponse.success && Array.isArray(bookedResponse.data)) {
         const timeSlotsByDate: { [date: string]: string[] } = {};
 
+        // Process all booked dates
         bookedResponse.data.forEach((item: any) => {
+          // Skip the current booking so it doesn't appear as booked
+          if (currentBookingId && item._id === currentBookingId) {
+            return;
+          }
+          
           const date = dayjs(item.bookingDate);
           const formattedDate = date.format("YYYY-MM-DD");
           const formattedTime = date.format("HH:mm");
@@ -118,19 +98,22 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
       }
     } catch (error) {
       console.error("Failed to fetch dentist availability:", error);
+      setError("Failed to load availability data. Please try again.");
     } finally {
-      setLoading(false);
+      setFetchingAvailability(false);
     }
   };
-
-  useEffect(() => {
-    if (!selectedDate) {
+  
+  // Function to update available time slots based on date and booked slots
+  const updateAvailableTimeSlots = (date: Dayjs | null, bookedSlots: {[date: string]: string[]}) => {
+    if (!date) {
       setAvailableTimeSlots([]);
       return;
     }
-
-    const formattedDate = selectedDate.format("YYYY-MM-DD");
-
+    
+    const formattedDate = date.format("YYYY-MM-DD");
+    
+    // Define all possible time slots
     const allTimeSlots = [
       { start: "09:00", end: "10:00" },
       { start: "10:00", end: "11:00" },
@@ -140,64 +123,194 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
       { start: "15:00", end: "16:00" },
       { start: "16:00", end: "17:00" },
     ];
-
-    const bookedTimes = bookedTimeSlots[formattedDate] || [];
-
+    
+    // Get booked times for this date
+    const bookedTimes = bookedSlots[formattedDate] || [];
+    
+    // Mark slots as booked or available
     const slotsWithAvailability = allTimeSlots.map((slot) => {
+      // Check if this slot's time is in the booked list
       const isBooked = bookedTimes.some((bookedTime) => {
         const bookedHour = bookedTime.split(":")[0];
         const slotStartHour = slot.start.split(":")[0];
         return bookedHour === slotStartHour;
       });
-
+      
       return {
         ...slot,
         isBooked,
       };
     });
-
+    
     setAvailableTimeSlots(slotsWithAvailability);
+  };
+
+  // Initial data loading - only runs once
+  useEffect(() => {
+    if (!session?.user?.token || dataLoaded) return;
+    
+    async function loadInitialData() {
+      try {
+        setInitialLoading(true);
+        
+        // Check for session first
+        if (!session?.user?.token) {
+          throw new Error("No session available");
+        }
+
+        // Load booking details
+        const bookingData = await getBooking(session.user.token, params.bid);
+        setBookingJson(bookingData);
+        
+        if (bookingData.data) {
+          const dentistId = bookingData.data.dentist._id || "";
+          setDentist(dentistId);
+          setDentistName(bookingData.data.dentist.name || "");
+          
+          // Set selected date from booking
+          const bookingDate = dayjs(bookingData.data.bookingDate);
+          setSelectedDate(bookingDate);
+          
+          // Immediately fetch availability for this dentist
+          if (dentistId) {
+            await fetchDentistAvailability(dentistId, params.bid);
+          }
+        }
+        
+        setDataLoaded(true);
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+        setError("Failed to load booking details. Please try again.");
+      } finally {
+        setInitialLoading(false);
+      }
+    }
+    
+    loadInitialData();
+  }, [session, params.bid, dataLoaded]);
+
+  // Update time slots when booking data is loaded or dentist changes
+  useEffect(() => {
+    if (bookingJson && !selectedTimeSlot && selectedDate) {
+      const bookingHour = dayjs(bookingJson.data.bookingDate).format("HH:mm");
+      const timeSlots = [
+        { start: "09:00", end: "10:00" },
+        { start: "10:00", end: "11:00" },
+        { start: "11:00", end: "12:00" },
+        { start: "13:00", end: "14:00" },
+        { start: "14:00", end: "15:00" },
+        { start: "15:00", end: "16:00" },
+        { start: "16:00", end: "17:00" },
+      ];
+      
+      const matchingSlot = timeSlots.find(slot => slot.start === bookingHour);
+      if (matchingSlot) {
+        setSelectedTimeSlot(matchingSlot);
+      }
+    }
+  }, [bookingJson, selectedDate, selectedTimeSlot]);
+
+  // Update available time slots when selected date or booked slots change
+  useEffect(() => {
+    if (dataLoaded) {
+      updateAvailableTimeSlots(selectedDate, bookedTimeSlots);
+    }
+  }, [selectedDate, bookedTimeSlots, dataLoaded]);
+
+  // Handler for dentist changes
+  const handleDentistChange = (value: string) => {
+    setDentist(value);
+
+    if (value in dentistNames) {
+      setDentistName(dentistNames[value]);
+    } else {
+      setDentistName("");
+    }
+
+    // Reset time related selections
     setSelectedTimeSlot(null);
-  }, [selectedDate, bookedTimeSlots]);
+    setBookedTimeSlots({});
+    
+    // Fetch availability for the new dentist
+    fetchDentistAvailability(value, params.bid);
+  };
 
+  // Handler for date selection
+  const handleDateSelection = (newDate: Dayjs | null) => {
+    if (!newDate) return;
+    
+    setSelectedDate(newDate);
+    setSelectedTimeSlot(null);
+  };
+
+  // Handler for time slot selection
+  const handleTimeSlotClick = (timeSlot: TimeSlot) => {
+    if (timeSlot.isBooked) return; // Don't select booked slots
+    setSelectedTimeSlot(timeSlot);
+  };
+
+  // Check if a date should be disabled
+  const shouldDisableDate = (date: Dayjs) => {
+    // Disable past dates
+    if (date.isBefore(dayjs(), "day")) {
+      return true;
+    }
+    
+    // Check if date is fully booked (all time slots taken)
+    const formattedDate = date.format("YYYY-MM-DD");
+    const bookedSlots = bookedTimeSlots[formattedDate] || [];
+    
+    // If all 7 time slots are booked, disable the date
+    return bookedSlots.length >= 7;
+  };
+
+  // Handler for month changes in calendar
+  const handleMonthChange = (date: Dayjs) => {
+    setCurrentMonth(date.format("MMMM YYYY"));
+  };
+
+  // Handler for editing the booking
   const handleEditBooking = async () => {
-    /*if (!dentist || !appointmentDate) {
-      setError("Please select a dentist and appointment date.");
-      return;
-    }*/
-
     if (!dentist || !selectedDate || !selectedTimeSlot) {
-      setError(
-        "Please select a dentist, date, and time slot for your appointment."
-      );
+      setError("Please select a dentist, date, and time slot for your appointment.");
+      return;
+    }
+
+    if (selectedTimeSlot.isBooked) {
+      setError("This time slot is already booked. Please select another time.");
       return;
     }
 
     if (!session?.user?.token) {
-      setError("You must be logged in to make a booking.");
+      setError("You must be logged in to update your booking.");
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
     try {
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+      
+      // Format the appointment date with the selected time
       const appointmentDate = selectedDate
         .hour(parseInt(selectedTimeSlot.start.split(":")[0]))
         .minute(parseInt(selectedTimeSlot.start.split(":")[1] || "0"))
         .second(0);
 
       const formattedDate = appointmentDate.toISOString();
+      
+      // Update the booking with new date and dentist
       await updateBooking(
         bookingJson.data._id,
         session.user.token,
         formattedDate,
         dentist
       );
-      setSuccess("Booking Edited!");
-      setSelectedDate(null);
-      setSelectedTimeSlot(null);
+      
+      setSuccess("Booking updated successfully!");
+      setTimeout(() => {
+        router.push("/bookingHistory");
+      }, 2000);
     } catch (err) {
       const userProfile = await getUserProfile(session.user.token);
       if (userProfile.data.role === "banned") {
@@ -210,53 +323,8 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
     }
   };
 
-  const handleDentistChange = (value: string) => {
-    setDentist(value);
-
-    if (value in dentistNames) {
-      setDentistName(dentistNames[value]);
-    } else {
-      setDentistName("");
-    }
-
-    fetchDentistAvailability(value);
-    setSelectedDate(null);
-    setSelectedTimeSlot(null);
-  };
-
-  const shouldDisableDate = (date: Dayjs) => {
-    if (date.isBefore(dayjs(), "day")) {
-      return true;
-    }
-
-    return false;
-  };
-
-  const handleTimeSlotClick = (timeSlot: TimeSlot) => {
-    if (timeSlot.isBooked) return;
-    setSelectedTimeSlot(timeSlot);
-  };
-
-  const handleMonthChange = (date: Dayjs) => {
-    setCurrentMonth(date.format("MMMM YYYY"));
-  };
-
-  const getDayClass = (date: Dayjs) => {
-    const formattedDate = date.format("YYYY-MM-DD");
-    const bookedTimes = bookedTimeSlots[formattedDate] || [];
-
-    if (bookedTimes.length >= 7) {
-      return "opacity-50 cursor-not-allowed bg-gray-200";
-    }
-
-    if (bookedTimes.length > 0) {
-      return "bg-blue-100";
-    }
-
-    return "";
-  };
-
-  if (!bookingJson) {
+  // Loading state
+  if (initialLoading) {
     return (
       <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-xl animate-fade-in">
@@ -278,13 +346,32 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
     );
   }
 
-  /*return (
+  if (!bookingJson) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="p-8 bg-white rounded-xl shadow-lg text-center max-w-md w-full">
+          <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+          <p className="text-gray-600 mb-6">Could not load booking details. The appointment may have been deleted or moved.</p>
+          <Link href="/bookingHistory" className="inline-block bg-[#4AA3BA] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#3b8294] transition-colors">
+            View Your Bookings
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
     <main className="w-full flex flex-col items-center bg-white min-h-screen">
       <div className="w-full bg-gray-100 py-12 text-center">
         <h1 className="text-4xl font-bold text-gray-900">Edit Booking</h1>
         <div className="mt-2 text-sm text-gray-600">
-          <Link href="/booking" className="hover:text-blue-600">
-            Booking
+          <Link href="/bookingHistory" className="hover:text-blue-600">
+            Booking History
           </Link>{" "}
           / <span>Edit Booking</span>
         </div>
@@ -297,53 +384,6 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
           </h2>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg max-w-lg mx-auto p-8">
-          <DentistDateReserve
-            onDateChange={(value: Dayjs) => setAppointmentDate(value)}
-            onDentistChange={(value: string) => setDentist(value)}
-            selectedDentist={dentist}
-            selectedDate={appointmentDate}
-          />
-
-          {error && <p className="text-red-500 mt-4">{error}</p>}
-          {success && <p className="text-green-500 mt-4">{success}</p>}
-
-          <div className="mt-8">
-            <button
-              className="w-full bg-[#5EBFD3] hover:bg-[#4AA3BA] text-white font-medium py-3 px-4 rounded-full transition-colors duration-200"
-              onClick={handleEditBooking}
-              disabled={loading}
-            >
-              {loading ? "Editing Booking..." : "Edit Appointment"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </main>
-  );*/
-
-  return (
-    <main className="w-full flex flex-col items-center bg-white min-h-screen">
-      <div className="w-full bg-gray-100 py-12 text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Booking</h1>
-        <div className="mt-2 text-sm text-gray-600">
-          <Link href="/" className="hover:text-white">
-            Home
-          </Link>{" "}
-          / <span>Booking</span>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-800">
-            Schedule your <span className="text-[#4AA3BA]">Dental Booking</span>
-          </h2>
-          <p className="mt-2 text-gray-500 max-w-2xl mx-auto">
-            Select your preferred dentist, date, and time for your appointment.
-          </p>
-        </div>
-
         <div className="flex flex-col md:flex-row justify-between gap-8">
           <div className="bg-white rounded-xl shadow-lg p-8 md:w-1/2 border border-gray-100">
             <div className="mb-8">
@@ -351,7 +391,7 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
                 htmlFor="dentist"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Select Dentist
+                Choose Dentist
               </label>
               <Select
                 fullWidth
@@ -536,7 +576,7 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
                     Processing...
                   </span>
                 ) : (
-                  "Edit an appointment"
+                  "Update Appointment"
                 )}
               </button>
             </div>
@@ -549,7 +589,7 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
                   <div>
                     <p className="text-sm text-gray-500">Selected Dentist</p>
                     <h3 className="text-lg font-medium text-gray-800">
-                      {loading ? (
+                      {fetchingAvailability ? (
                         <span className="flex items-center">
                           <svg
                             className="animate-spin h-4 w-4 mr-2 text-[#4AA3BA]"
@@ -589,11 +629,7 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DateCalendar
                     value={selectedDate}
-                    onChange={(newDate) => {
-                      if (newDate) {
-                        setSelectedDate(newDate);
-                      }
-                    }}
+                    onChange={handleDateSelection}
                     onMonthChange={handleMonthChange}
                     shouldDisableDate={shouldDisableDate}
                     views={["day"]}
@@ -638,7 +674,14 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
                     </div>
 
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {availableTimeSlots.length > 0 ? (
+                      {fetchingAvailability ? (
+                        <div className="col-span-full flex justify-center py-4">
+                          <svg className="animate-spin h-6 w-6 text-[#4AA3BA]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      ) : availableTimeSlots.length > 0 ? (
                         availableTimeSlots.map((slot, index) => (
                           <button
                             key={index}
@@ -648,7 +691,7 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
                                 ${
                                   slot.isBooked
                                     ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-50 border border-gray-200"
-                                    : selectedTimeSlot === slot
+                                    : selectedTimeSlot && selectedTimeSlot.start === slot.start
                                     ? "bg-[#4AA3BA] text-white shadow-md"
                                     : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-[#4AA3BA] hover:text-[#4AA3BA]"
                                 }`}
