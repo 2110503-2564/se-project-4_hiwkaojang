@@ -272,20 +272,22 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
   // Handler for editing the booking
   const handleEditBooking = async () => {
     if (!dentist || !selectedDate || !selectedTimeSlot) {
-      setError("Please select a dentist, date, and time slot for your appointment.");
+      setError(
+        "Please select a dentist, date, and time slot for your appointment."
+      );
       return;
     }
-
+  
     if (selectedTimeSlot.isBooked) {
       setError("This time slot is already booked. Please select another time.");
       return;
     }
-
+  
     if (!session?.user?.token) {
       setError("You must be logged in to update your booking.");
       return;
     }
-
+  
     try {
       setLoading(true);
       setError(null);
@@ -296,7 +298,7 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
         .hour(parseInt(selectedTimeSlot.start.split(":")[0]))
         .minute(parseInt(selectedTimeSlot.start.split(":")[1] || "0"))
         .second(0);
-
+  
       const formattedDate = appointmentDate.toISOString();
       
       // Update the booking with new date and dentist
@@ -308,8 +310,11 @@ export default function EditBooking({ params }: { params: { bid: string } }) {
       );
       
       setSuccess("Booking updated successfully!");
+      
+      // Change this redirection to go to the manage page instead of bookingHistory
       setTimeout(() => {
-        router.push("/bookingHistory");
+        // Using window.location.href to ensure fresh data loading
+        window.location.href = "/manage";
       }, 2000);
     } catch (err) {
       const userProfile = await getUserProfile(session.user.token);
