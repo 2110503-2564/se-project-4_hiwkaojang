@@ -36,6 +36,13 @@ export default function TopMenu() {
     router.refresh();
   };
 
+  // This function will handle clicking the Manage link and force a full page reload
+  const handleManageClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Use window.location.href to force a full page reload
+    window.location.href = '/manage';
+  };
+
   return (
     <div className="fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-300">
       {/* Top contact bar */}
@@ -127,12 +134,13 @@ export default function TopMenu() {
           
           {/* Show Manage link for all roles EXCEPT dentist */}
           {session?.user?.token && userRole !== 'dentist' && (
-            <Link 
+            <a 
               href="/manage" 
-              className="text-black hover:text-gray-600 font-semibold text-lg"
+              onClick={handleManageClick}
+              className="text-black hover:text-gray-600 font-semibold text-lg cursor-pointer"
             >
               Manage
-            </Link>
+            </a>
           )}
         </div>
 
