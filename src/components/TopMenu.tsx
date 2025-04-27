@@ -36,6 +36,20 @@ export default function TopMenu() {
     router.refresh();
   };
 
+  // This function will handle clicking the Manage link and force a full page reload
+  const handleManageClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Use window.location.href to force a full page reload
+    window.location.href = '/manage';
+  };
+
+  // This function will handle clicking the Dentists link and force a full page reload
+  const handleDentistsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Use window.location.href to force a full page reload
+    window.location.href = '/dentist';
+  };
+
   return (
     <div className="fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-300">
       {/* Top contact bar */}
@@ -121,18 +135,24 @@ export default function TopMenu() {
             </>
           )}
           
-          <Link href="/dentist" className="text-black hover:text-gray-600 font-semibold text-lg">
+          {/* Use anchor tag with click handler for Dentists to force reload */}
+          <a 
+            href="/dentist" 
+            onClick={handleDentistsClick}
+            className="text-black hover:text-gray-600 font-semibold text-lg cursor-pointer"
+          >
             Dentists
-          </Link>
+          </a>
           
           {/* Show Manage link for all roles EXCEPT dentist */}
           {session?.user?.token && userRole !== 'dentist' && (
-            <Link 
+            <a 
               href="/manage" 
-              className="text-black hover:text-gray-600 font-semibold text-lg"
+              onClick={handleManageClick}
+              className="text-black hover:text-gray-600 font-semibold text-lg cursor-pointer"
             >
               Manage
-            </Link>
+            </a>
           )}
         </div>
 
