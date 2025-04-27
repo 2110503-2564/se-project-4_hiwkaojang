@@ -1,24 +1,35 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import blockSchedule from "@/libs/blockSchedule";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import getUserProfile from "@/libs/getUserProfile";
-import { Select, MenuItem, TextField } from "@mui/material";
+import { Select, MenuItem } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import getDentistNotAvailable from "@/libs/getDentistNotAvailable";
-import getDentist from "@/libs/getDentist";
 
 interface TimeSlot {
   start: string;
   end: string;
-  isBooked?: boolean;
+  status: 'available' | 'booked' | 'unavailable';
 }
+
+const dentistNames: Record<string, string> = {
+  "67fde0a05a0148bd6061706c": "Dr. John Carter",
+  "67fde18e5a0148bd6061706f": "Dr. Emily Richardson",
+  "67fde1ee5a0148bd60617072": "Dr. Michael Tanaka",
+  "67fde2225a0148bd60617075": "Dr. Sophia Patel",
+  "67fde24d5a0148bd60617078": "Dr. David Lee",
+  "67fde2885a0148bd6061707b": "Dr. Jessica Wong",
+  "67fde2b75a0148bd6061707e": "Dr. Robert Sanchez",
+  "67fde2de5a0148bd60617081": "Dr. Anna Müller",
+  "67fde3085a0148bd60617084": "Dr. Benjamin Cooper",
+};
 
 export default function Reservations() {
   const { data: session } = useSession();
@@ -28,34 +39,98 @@ export default function Reservations() {
   const [dentist, setDentist] = useState<string>(didFromParams || "");
   const [dentistName, setDentistName] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(
-    null
-  );
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [bookedTimeSlots, setBookedTimeSlots] = useState<{
-    [date: string]: string[];
-  }>({});
-  const [pendingBookings, setPendingBookings] = useState<{
-    [date: string]: string[];
-  }>({});
-  const [currentMonth, setCurrentMonth] = useState<string>(
-    dayjs().format("MMMM YYYY")
-  );
+  const [bookedTimeSlots, setBookedTimeSlots] = useState<{[date: string]: string[]}>({});
+  const [unavailableTimeSlots, setUnavailableTimeSlots] = useState<{[date: string]: string[]}>({});
+  const [pendingBookings, setPendingBookings] = useState<{[date: string]: string[]}>({});
+  const [currentMonth, setCurrentMonth] = useState<string>(dayjs().format("MMMM YYYY"));
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  const [fetchingAvailability, setFetchingAvailability] = useState<boolean>(false);
 
-  const dentistNames: Record<string, string> = {
-    "67fde0a05a0148bd6061706c": "Dr. John Carter",
-    "67fde18e5a0148bd6061706f": "Dr. Emily Richardson",
-    "67fde1ee5a0148bd60617072": "Dr. Michael Tanaka",
-    "67fde2225a0148bd60617075": "Dr. Sophia Patel",
-    "67fde24d5a0148bd60617078": "Dr. David Lee",
-    "67fde2885a0148bd6061707b": "Dr. Jessica Wong",
-    "67fde2b75a0148bd6061707e": "Dr. Robert Sanchez",
-    "67fde2de5a0148bd60617081": "Dr. Anna Müller",
-    "67fde3085a0148bd60617084": "Dr. Benjamin Cooper",
-  };
+  const fetchDentistAvailability = useCallback(async (dentistId: string) => {
+    try {
+      setFetchingAvailability(true);
+      
+      const timestamp = new Date().getTime();
+      
+      // Regular bookings
+      const regularResponse = await getDentistNotAvailable(dentistId + `?_t=${timestamp}`);
+      
+      // Blocked slots (marked as unavailable by dentist)
+      const blockedResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/bookings?status=blocked&dentistId=${dentistId}&_t=${timestamp}`, 
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.user?.token || ''}`
+          }
+        }
+      ).then(res => res.json()).catch(() => ({ success: false, data: [] }));
+      
+      const bookedSlots: {[date: string]: string[]} = {};
+      const unavailableSlots: {[date: string]: string[]} = {};
+      
+      // Process regular bookings
+      if (regularResponse.success && Array.isArray(regularResponse.data)) {
+        regularResponse.data.forEach((item: any) => {
+          if (item.status === 'blocked') {
+            // This is an unavailable slot marked by dentist
+            const date = dayjs(item.bookingDate);
+            const formattedDate = date.format("YYYY-MM-DD");
+            const formattedTime = date.format("HH:mm");
+            
+            if (!unavailableSlots[formattedDate]) {
+              unavailableSlots[formattedDate] = [];
+            }
+            
+            unavailableSlots[formattedDate].push(formattedTime);
+          } else {
+            // This is a regular booking
+            const date = dayjs(item.bookingDate);
+            const formattedDate = date.format("YYYY-MM-DD");
+            const formattedTime = date.format("HH:mm");
+            
+            if (!bookedSlots[formattedDate]) {
+              bookedSlots[formattedDate] = [];
+            }
+            
+            bookedSlots[formattedDate].push(formattedTime);
+          }
+        });
+      }
+      
+      // Process blocked slots from separate endpoint
+      if (blockedResponse.success && Array.isArray(blockedResponse.data)) {
+        blockedResponse.data.forEach((item: any) => {
+          const date = dayjs(item.bookingDate);
+          const formattedDate = date.format("YYYY-MM-DD");
+          const formattedTime = date.format("HH:mm");
+          
+          if (!unavailableSlots[formattedDate]) {
+            unavailableSlots[formattedDate] = [];
+          }
+          
+          if (!unavailableSlots[formattedDate].includes(formattedTime)) {
+            unavailableSlots[formattedDate].push(formattedTime);
+          }
+        });
+      }
+      
+      console.log("Booked time slots:", bookedSlots);
+      console.log("Unavailable time slots:", unavailableSlots);
+      
+      setBookedTimeSlots(bookedSlots);
+      setUnavailableTimeSlots(unavailableSlots);
+    } catch (error) {
+      console.error("Failed to fetch dentist availability:", error);
+      setError("Failed to load availability data. Please try again.");
+    } finally {
+      setFetchingAvailability(false);
+    }
+  }, [session?.user?.token]);
 
   useEffect(() => {
     if (didFromParams) {
@@ -69,39 +144,7 @@ export default function Reservations() {
       
       fetchDentistAvailability(didFromParams);
     }
-  }, [didFromParams]);
-
-  const fetchDentistAvailability = async (dentistId: string) => {
-    try {
-      setLoading(true);
-
-      const timestamp = new Date().getTime();
-      const bookedResponse = await getDentistNotAvailable(dentistId + `?_t=${timestamp}`);
-      
-      if (bookedResponse.success && Array.isArray(bookedResponse.data)) {
-        const timeSlotsByDate: { [date: string]: string[] } = {};
-
-        bookedResponse.data.forEach((item: any) => {
-          const date = dayjs(item.bookingDate);
-          const formattedDate = date.format("YYYY-MM-DD");
-          const formattedTime = date.format("HH:mm");
-
-          if (!timeSlotsByDate[formattedDate]) {
-            timeSlotsByDate[formattedDate] = [];
-          }
-
-          timeSlotsByDate[formattedDate].push(formattedTime);
-        });
-
-        console.log("Fetched booked time slots:", timeSlotsByDate);
-        setBookedTimeSlots(timeSlotsByDate);
-      }
-    } catch (error) {
-      console.error("Failed to fetch dentist availability:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [didFromParams, fetchDentistAvailability]);
 
   useEffect(() => {
     if (!selectedDate) {
@@ -110,75 +153,72 @@ export default function Reservations() {
     }
 
     const formattedDate = selectedDate.format("YYYY-MM-DD");
-
+    
     const allTimeSlots = [
-      { start: "09:00", end: "10:00" },
-      { start: "10:00", end: "11:00" },
-      { start: "11:00", end: "12:00" },
-      { start: "13:00", end: "14:00" },
-      { start: "14:00", end: "15:00" },
-      { start: "15:00", end: "16:00" },
-      { start: "16:00", end: "17:00" },
+      { start: "09:00", end: "10:00", status: 'available' as const },
+      { start: "10:00", end: "11:00", status: 'available' as const },
+      { start: "11:00", end: "12:00", status: 'available' as const },
+      { start: "13:00", end: "14:00", status: 'available' as const },
+      { start: "14:00", end: "15:00", status: 'available' as const },
+      { start: "15:00", end: "16:00", status: 'available' as const },
+      { start: "16:00", end: "17:00", status: 'available' as const },
     ];
-
+    
     const bookedTimes = bookedTimeSlots[formattedDate] || [];
+    const unavailableTimes = unavailableTimeSlots[formattedDate] || [];
     const pendingTimes = pendingBookings[formattedDate] || [];
-
-    const slotsWithAvailability = allTimeSlots.map((slot) => {
-      const isBooked = bookedTimes.some((bookedTime) => {
-        const bookedHour = bookedTime.split(":")[0];
-        const slotStartHour = slot.start.split(":")[0];
+    
+    const slotsWithAvailability = allTimeSlots.map(slot => {
+      // Check if slot is booked (normal booking)
+      const isBooked = bookedTimes.some(bookedTime => {
+        const bookedHour = bookedTime.split(':')[0];
+        const slotStartHour = slot.start.split(':')[0];
         return bookedHour === slotStartHour;
       });
       
+      // Check if slot is marked as unavailable by dentist
+      const isUnavailable = unavailableTimes.some(unavailableTime => {
+        const unavailableHour = unavailableTime.split(':')[0];
+        const slotStartHour = slot.start.split(':')[0];
+        return unavailableHour === slotStartHour;
+      });
+      
+      // Check if slot is pending (temporary state while saving)
       const isPending = pendingTimes.includes(slot.start);
-
-      return {
-        ...slot,
-        isBooked: isBooked || isPending,
-      };
+      
+      // Set the appropriate status
+      if (isUnavailable || isPending) {
+        return { ...slot, status: 'unavailable' as const };
+      } else if (isBooked) {
+        return { ...slot, status: 'booked' as const };
+      }
+      
+      return slot; // Keep as available
     });
-
+    
     setAvailableTimeSlots(slotsWithAvailability);
-    setSelectedTimeSlot(null);
-  }, [selectedDate, bookedTimeSlots, pendingBookings]);
-
-  const handleBooking = async () => {
+  }, [selectedDate, bookedTimeSlots, unavailableTimeSlots, pendingBookings]);
+  
+  const handleMarkUnavailable = async () => {
     if (!dentist || !selectedDate || !selectedTimeSlot) {
-      setError(
-        "Please select a dentist, date, and time slot for your appointment."
-      );
+      setError("Please select a date and time slot to mark as unavailable.");
+      return;
+    }
+    
+    if (selectedTimeSlot.status !== 'available') {
+      setError(`This time slot is already ${selectedTimeSlot.status}.`);
       return;
     }
 
     if (!session?.user?.token) {
-      setError("You must be logged in to make a schedule.");
+      setError("You must be logged in to update your schedule.");
       return;
     }
-
+    
     const dateKey = selectedDate.format("YYYY-MM-DD");
     const timeKey = selectedTimeSlot.start;
     
-    const isPending = pendingBookings[dateKey]?.includes(timeKey);
-    if (isPending) {
-      setError("This time slot is already being processed. Please select another slot.");
-      return;
-    }
-    
-    // Check if already booked in backend
-    const isAlreadyBooked = bookedTimeSlots[dateKey]?.some(time => {
-      const bookedHour = time.split(":")[0];
-      const slotStartHour = timeKey.split(":")[0];
-      return bookedHour === slotStartHour;
-    });
-    
-    if (isAlreadyBooked) {
-      setError("This time slot is already booked. Please select another slot.");
-      // Refresh availability data to ensure UI is updated
-      fetchDentistAvailability(dentist);
-      return;
-    }
-
+    // Update pending bookings for UI feedback
     const updatedPendingBookings = { ...pendingBookings };
     if (!updatedPendingBookings[dateKey]) {
       updatedPendingBookings[dateKey] = [];
@@ -189,7 +229,7 @@ export default function Reservations() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-
+    
     try {
       const appointmentDate = selectedDate
         .hour(parseInt(selectedTimeSlot.start.split(":")[0]))
@@ -197,117 +237,100 @@ export default function Reservations() {
         .second(0);
 
       const formattedDate = appointmentDate.toISOString();
+      // Use blockSchedule API to mark slot as unavailable
       await blockSchedule(dentist, session.user.token, formattedDate);
       
-      const isVerified = await verifyBookingSuccess(dentist, dateKey, timeKey);
+      // Verify booking was successful by re-fetching availability
+      setTimeout(() => fetchDentistAvailability(dentist), 500);
       
-      if (isVerified) {
-        setSuccess("Schedule marked successfully!");
-        
-        setSelectedDate(null);
-        setSelectedTimeSlot(null);
-      } else {
-        console.log("Booking not found in verification, refreshing data...");
-        
-        setTimeout(() => fetchDentistAvailability(dentist), 500);
-        setTimeout(() => fetchDentistAvailability(dentist), 1500);
-        setTimeout(() => fetchDentistAvailability(dentist), 3000);
-        
-        setSuccess("Booking processed. Please wait while we update your schedule.");
-      }
+      setSuccess("Time slot marked as unavailable successfully!");
+      
+      // Reset UI selection
+      setSelectedTimeSlot(null);
     } catch (err) {
+      console.error("Error marking slot as unavailable:", err);
       const userProfile = await getUserProfile(session.user.token);
       if (userProfile.data.role === "banned") {
-        setError("Failed to add schedule. You got banned");
+        setError("Failed to update schedule. You are banned.");
       } else {
-        setError("Failed to make an appointment. Please try again!");
+        setError("Failed to mark time slot as unavailable. Please try again!");
       }
       
+      // Remove from pending
+      const updatedPendingBookings = { ...pendingBookings };
+      if (updatedPendingBookings[dateKey]) {
+        updatedPendingBookings[dateKey] = updatedPendingBookings[dateKey].filter(time => time !== timeKey);
+        if (updatedPendingBookings[dateKey].length === 0) {
+          delete updatedPendingBookings[dateKey];
+        }
+      }
+      setPendingBookings(updatedPendingBookings);
+      
+      // Refresh availability to ensure UI is in sync
       fetchDentistAvailability(dentist);
     } finally {
       setLoading(false);
     }
   };
 
-  const verifyBookingSuccess = async (dentistId: string, dateStr: string, timeSlot: string) => {
-    try {
-      const timestamp = new Date().getTime();
-      const response = await getDentistNotAvailable(dentistId + `?_t=${timestamp}`);
-      
-      if (response.success && Array.isArray(response.data)) {
-        return response.data.some((item: any) => {
-          const bookingDate = dayjs(item.bookingDate);
-          const bookingDateStr = bookingDate.format("YYYY-MM-DD");
-          const bookingTimeStr = bookingDate.format("HH:mm");
-          
-          return bookingDateStr === dateStr && bookingTimeStr === timeSlot;
-        });
-      }
-      return false;
-    } catch (error) {
-      console.error("Failed to verify booking:", error);
-      return false;
-    }
-  };
-
   const handleDentistChange = (value: string) => {
     setDentist(value);
-
+    
     if (value in dentistNames) {
       setDentistName(dentistNames[value]);
     } else {
       setDentistName("");
     }
-
+    
     fetchDentistAvailability(value);
     setSelectedDate(null);
     setSelectedTimeSlot(null);
   };
 
-  const isTimeSlotBooked = (dateKey: string, timeKey: string): boolean => {
-    // Check if booked in backend
-    const isBackendBooked = bookedTimeSlots[dateKey]?.some(time => {
-      const bookedHour = time.split(":")[0];
-      const slotStartHour = timeKey.split(":")[0];
-      return bookedHour === slotStartHour;
-    });
-    
-    // Check if in pending state
-    const isPendingBooked = pendingBookings[dateKey]?.includes(timeKey);
-    
-    return isBackendBooked || isPendingBooked;
-  }
-  
   const shouldDisableDate = (date: Dayjs) => {
-    if (date.isBefore(dayjs(), "day")) {
+    if (date.isBefore(dayjs(), 'day')) {
       return true;
     }
-
+    
     return false;
   };
-
+  
   const handleTimeSlotClick = (timeSlot: TimeSlot) => {
-    if (timeSlot.isBooked) return;
+    // For dentists in schedule page, they can select any slot, even booked ones
+    // They only need to mark available slots as unavailable
     setSelectedTimeSlot(timeSlot);
   };
-
+  
   const handleMonthChange = (date: Dayjs) => {
     setCurrentMonth(date.format("MMMM YYYY"));
   };
-
-  const getDayClass = (date: Dayjs) => {
-    const formattedDate = date.format("YYYY-MM-DD");
-    const bookedTimes = bookedTimeSlots[formattedDate] || [];
-
-    if (bookedTimes.length >= 7) {
-      return "opacity-50 cursor-not-allowed bg-gray-200";
+  
+  // Get CSS class for time slot based on status
+  const getTimeSlotClass = (timeSlot: TimeSlot) => {
+    // Base selected state - this applies regardless of status
+    const isSelected = selectedTimeSlot?.start === timeSlot.start 
+      && selectedTimeSlot?.end === timeSlot.end;
+      
+    const selectedClass = isSelected 
+      ? "ring-2 ring-blue-600 ring-offset-1" 
+      : "";
+    
+    // Status-specific styling
+    switch (timeSlot.status) {
+      case 'available':
+        return `${selectedClass} ${isSelected 
+          ? "bg-blue-100 text-blue-800 border-blue-300" 
+          : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-[#4AA3BA] hover:text-[#4AA3BA]"}`;
+      
+      case 'booked':
+        return `${selectedClass} bg-gray-100 text-gray-600 border border-gray-300 ${!isSelected ? "cursor-not-allowed" : ""}`;
+      
+      case 'unavailable':
+        return `${selectedClass} bg-red-100 text-red-600 border border-red-300 ${!isSelected ? "cursor-not-allowed" : ""}`;
+      
+      default:
+        return `${selectedClass} bg-white text-gray-700 border border-gray-200`;
     }
-
-    if (bookedTimes.length > 0) {
-      return "bg-blue-100";
-    }
-
-    return "";
   };
 
   return (
@@ -328,7 +351,7 @@ export default function Reservations() {
             Edit your <span className="text-[#4AA3BA]">Schedule</span>
           </h2>
           <p className="mt-2 text-gray-500 max-w-2xl mx-auto">
-            Select your date and time for your schedule.
+            Mark times when you are unavailable for appointments.
           </p>
         </div>
 
@@ -362,33 +385,11 @@ export default function Reservations() {
                   },
                 }}
               >
-                <MenuItem value="67fde0a05a0148bd6061706c">
-                  Dr. John Carter
-                </MenuItem>
-                <MenuItem value="67fde18e5a0148bd6061706f">
-                  Dr. Emily Richardson
-                </MenuItem>
-                <MenuItem value="67fde1ee5a0148bd60617072">
-                  Dr. Michael Tanaka
-                </MenuItem>
-                <MenuItem value="67fde2225a0148bd60617075">
-                  Dr. Sophia Patel
-                </MenuItem>
-                <MenuItem value="67fde24d5a0148bd60617078">
-                  Dr. David Lee
-                </MenuItem>
-                <MenuItem value="67fde2885a0148bd6061707b">
-                  Dr. Jessica Wong
-                </MenuItem>
-                <MenuItem value="67fde2b75a0148bd6061707e">
-                  Dr. Robert Sanchez
-                </MenuItem>
-                <MenuItem value="67fde2de5a0148bd60617081">
-                  Dr. Anna Müller
-                </MenuItem>
-                <MenuItem value="67fde3085a0148bd60617084">
-                  Dr. Benjamin Cooper
-                </MenuItem>
+                {Object.entries(dentistNames).map(([id, name]) => (
+                  <MenuItem key={id} value={id}>
+                    {name}
+                  </MenuItem>
+                ))}
               </Select>
             </div>
 
@@ -433,7 +434,7 @@ export default function Reservations() {
               </LocalizationProvider>
             </div>
 
-            {selectedDate && selectedTimeSlot && !selectedTimeSlot.isBooked && (
+            {selectedDate && selectedTimeSlot && selectedTimeSlot.status === 'available' && (
               <div className="mb-8 p-6 bg-[#F0F7FA] rounded-lg border border-[#D0E6EB]">
                 <h3 className="text-lg font-medium text-[#4AA3BA] mb-4">
                   Your Schedule Details
@@ -487,17 +488,17 @@ export default function Reservations() {
                   !selectedDate ||
                   !selectedTimeSlot ||
                   loading ||
-                  selectedTimeSlot?.isBooked
+                  selectedTimeSlot?.status !== 'available'
                     ? "opacity-50 cursor-not-allowed"
                     : "hover:shadow-lg transform hover:-translate-y-0.5"
                 }`}
-                onClick={handleBooking}
+                onClick={handleMarkUnavailable}
                 disabled={
                   loading ||
                   !dentist ||
                   !selectedDate ||
                   !selectedTimeSlot ||
-                  selectedTimeSlot?.isBooked
+                  selectedTimeSlot?.status !== 'available'
                 }
               >
                 {loading ? (
@@ -525,7 +526,7 @@ export default function Reservations() {
                     Processing...
                   </span>
                 ) : (
-                  "Mark your schedule"
+                  "Mark as Unavailable"
                 )}
               </button>
             </div>
@@ -538,7 +539,7 @@ export default function Reservations() {
                   <div>
                     <p className="text-sm text-gray-500">Selected Dentist</p>
                     <h3 className="text-lg font-medium text-gray-800">
-                      {loading ? (
+                      {fetchingAvailability ? (
                         <span className="flex items-center">
                           <svg
                             className="animate-spin h-4 w-4 mr-2 text-[#4AA3BA]"
@@ -563,7 +564,7 @@ export default function Reservations() {
                           Loading...
                         </span>
                       ) : (
-                        dentistName || "Please select a dentist"
+                        dentistName || "Selected Dentist"
                       )}
                     </h3>
                   </div>
@@ -610,7 +611,7 @@ export default function Reservations() {
                       },
                       ".MuiDayCalendar-weekContainer": {
                         justifyContent: "space-around",
-                      },
+                      }
                     }}
                   />
                 </LocalizationProvider>
@@ -632,12 +633,14 @@ export default function Reservations() {
                           <button
                             key={index}
                             onClick={() => handleTimeSlotClick(slot)}
-                            disabled={slot.isBooked}
+                            disabled={slot.status !== 'available'}
                             className={`py-2 px-1 text-sm font-medium rounded-md transition-all duration-200 
                               ${
-                                slot.isBooked
+                                slot.status === 'booked'
                                   ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-50 border border-gray-200"
-                                  : selectedTimeSlot === slot
+                                  : slot.status === 'unavailable'
+                                  ? "bg-red-100 text-red-400 cursor-not-allowed opacity-70 border border-red-200"
+                                  : selectedTimeSlot?.start === slot.start
                                   ? "bg-[#4AA3BA] text-white shadow-md"
                                   : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-[#4AA3BA] hover:text-[#4AA3BA]"
                               }`}
@@ -652,10 +655,14 @@ export default function Reservations() {
                       )}
                     </div>
 
-                    <div className="flex mt-4 gap-3 text-sm">
+                    <div className="flex flex-wrap mt-4 gap-3 text-sm">
                       <div className="flex items-center">
                         <div className="w-3 h-3 rounded-full bg-[#4AA3BA] mr-1"></div>
                         <span className="text-gray-600">Available</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-red-200 mr-1"></div>
+                        <span className="text-gray-600">Unavailable</span>
                       </div>
                       <div className="flex items-center">
                         <div className="w-3 h-3 rounded-full bg-gray-200 mr-1"></div>
