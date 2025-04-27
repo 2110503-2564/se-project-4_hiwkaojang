@@ -26,7 +26,7 @@ test('test', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Dentists' })).toBeVisible();
   await page.getByRole('link', { name: 'Dentists' }).click();
   await page.locator('div:nth-child(8) > .p-6 > .inline-block').click();
-  await expect(page.getByText('user3★★★★★"')).toBeVisible();
+  await expect(page.getByText('Anonymous★★★★★TestPlaywrightTC1_2')).toBeVisible();
   await page.getByRole('link', { name: 'Booking History' }).dblclick();
   await expect(page.getByText('Schedule your Dental BookingFilter AppointmentsSearchStatusAll')).toBeVisible();
   await page.getByRole('link', { name: 'Dentists' }).click();
