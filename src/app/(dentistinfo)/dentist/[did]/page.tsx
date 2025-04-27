@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import getDentist from '@/libs/getDentist';
 import Link from 'next/link';
-import Rating from '@/components/Rating';
 
 export default async function DentistDetailPage({ params }: { params: { did: string } }) {
   const dentistDetail = await getDentist(params.did);
