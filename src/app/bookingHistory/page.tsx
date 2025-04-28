@@ -7,7 +7,6 @@ import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/authOptions";
 import { redirect } from "next/navigation";
-import UserCatalog from "@/components/UserCatalog";
 import BookingHistoryCatalog from "@/components/BookingHistoryCatalog";
 
 export default async function Manage() {
