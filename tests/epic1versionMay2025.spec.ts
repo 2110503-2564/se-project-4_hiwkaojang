@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+//Date Range May 01, 2025 - May 31, 2025
+//This test is valid until May 31, 2025, because the program displays information based on the date, causing some data to be inconsistent with the test.
+
 test('test', async ({ page }) => {
   test.setTimeout(90000);
   await page.goto('http://localhost:3000/');
@@ -51,8 +54,8 @@ test('test', async ({ page }) => {
   await page.getByRole('link', { name: 'Bookings' }).click();
   await page.getByLabel('', { exact: true }).click();
   await page.getByRole('option', { name: 'Dr. John Carter' }).click();
-  await expect(page.getByText('Selected DentistDr. John CarterScheduleApril 2025April')).toBeVisible();
-  await page.getByRole('gridcell', { name: '28' }).click();
-  await expect(page.getByText('Selected DentistDr. John CarterScheduleApril 2025April')).toBeVisible();
+  await expect(page.getByText('Selected DentistDr. John CarterScheduleMay 2025May')).toBeVisible();
+  await page.getByRole('gridcell', { name: '31' }).click();
+  await expect(page.getByText('Selected DentistDr. John CarterScheduleMay 2025May')).toBeVisible();
   await page.getByRole('heading', { name: 'Available Time Slots' }).click();
 });
